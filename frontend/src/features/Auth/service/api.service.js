@@ -14,6 +14,7 @@ export const registerUser = async ({ name, username, email, password }) => {
     }
 }
 
+
 export const loginUser = async ({ email, password }) => {
     try {
         const response = await api.post("/api/auth/login", {
@@ -26,6 +27,7 @@ export const loginUser = async ({ email, password }) => {
         throw error;
     }
 };
+
 
 export const getMe = async () => {
     try {
@@ -45,6 +47,7 @@ export const verifyOTP = async ({ email, otp }) => {
     }
 }
 
+
 export const resendOtp = async (email) => {
     try {
         const response = await api.post("/api/auth/send-otp", { email });
@@ -53,6 +56,7 @@ export const resendOtp = async (email) => {
         throw error;
     }
 }
+
 
 export const logoutUser = async () => {
     try {
