@@ -32,11 +32,11 @@ const SubscriptionsPage = () => {
   return (
     <div className="max-w-[2200px] mx-auto px-4 sm:px-10 lg:px-12 py-8 sm:py-12">
       <div className="mb-10 flex items-center gap-4">
-        <div className="p-3 bg-stitch-grey rounded-2xl border border-border-main">
+        <div className="p-3 bg-surface-low rounded-2xl border border-border-main">
           <PlayCircle size={20} className="text-brand-orange" />
         </div>
         <div>
-          <h1 className="text-2xl font-display font-black text-stitch-black tracking-tight">Subscriptions</h1>
+          <h1 className="text-2xl font-display font-black text-text-main tracking-tight">Subscriptions</h1>
           <p className="text-sm text-text-muted">Recent broadcasts from channels you follow</p>
         </div>
       </div>
@@ -47,20 +47,20 @@ const SubscriptionsPage = () => {
         </div>
       ) : error ? (
         <div className="flex flex-col items-center justify-center py-32 text-center">
-          <PlayCircle size={48} className="text-black/10 mb-4" />
-          <p className="text-lg font-display font-black text-black">Signal Lost</p>
-          <p className="text-sm text-muted mt-2 max-w-xs">Couldn't load your subscriptions feed. Try again shortly.</p>
+          <PlayCircle size={48} className="text-white/10 mb-4" />
+          <p className="text-lg font-display font-black text-text-main">Signal Lost</p>
+          <p className="text-sm text-text-muted mt-2 max-w-xs">Couldn't load your subscriptions feed. Try again shortly.</p>
         </div>
       ) : !hasSubscriptions ? (
         <div className="flex flex-col items-center justify-center py-32 text-center">
-          <div className="w-20 h-20 rounded-3xl bg-brand-orange/10 flex items-center justify-center mb-6">
+          <div className="w-20 h-20 rounded-3xl bg-brand-orange/10 border border-brand-orange/20 flex items-center justify-center mb-6">
             <Compass className="w-10 h-10 text-brand-orange" />
           </div>
-          <p className="text-xl font-display font-black text-black">No Subscriptions Yet</p>
-          <p className="text-sm text-muted mt-2 max-w-xs">Follow channels to see their latest broadcasts here.</p>
+          <p className="text-xl font-display font-black text-text-main">No Subscriptions Yet</p>
+          <p className="text-sm text-text-muted mt-2 max-w-xs">Follow channels to see their latest broadcasts here.</p>
           <Link
             to="/explore"
-            className="mt-8 px-6 py-3 bg-black text-white text-xs font-black uppercase tracking-widest rounded-xl hover:bg-brand-orange transition-colors"
+            className="mt-8 px-6 py-3 bg-brand-orange text-white text-xs font-black uppercase tracking-widest rounded-xl hover:bg-white hover:text-black transition-colors"
           >
             Explore Content
           </Link>
@@ -73,9 +73,9 @@ const SubscriptionsPage = () => {
         </div>
       ) : (
         <div className="flex flex-col items-center justify-center py-32 text-center">
-          <PlayCircle size={48} className="text-black/10 mb-4" />
-          <p className="text-lg font-display font-black text-black">All Caught Up</p>
-          <p className="text-sm text-muted mt-2 max-w-xs">Your subscribed channels haven't posted anything new.</p>
+          <PlayCircle size={48} className="text-white/10 mb-4" />
+          <p className="text-lg font-display font-black text-text-main">All Caught Up</p>
+          <p className="text-sm text-text-muted mt-2 max-w-xs">Your subscribed channels haven't posted anything new.</p>
         </div>
       )}
     </div>

@@ -29,11 +29,11 @@ const ExplorePage = () => {
   return (
     <div className="max-w-[2200px] mx-auto px-4 sm:px-10 lg:px-12 py-8 sm:py-12">
       <div className="mb-10 flex items-center gap-4">
-        <div className="p-3 bg-stitch-grey rounded-2xl border border-border-main">
+        <div className="p-3 bg-surface-low rounded-2xl border border-border-main">
           <TrendingUp size={20} className="text-brand-orange" />
         </div>
         <div>
-          <h1 className="text-2xl font-display font-black text-stitch-black tracking-tight">Explore</h1>
+          <h1 className="text-2xl font-display font-black text-text-main tracking-tight">Explore</h1>
           <p className="text-sm text-text-muted">Trending broadcasts across the network</p>
         </div>
       </div>
@@ -44,9 +44,9 @@ const ExplorePage = () => {
         </div>
       ) : error ? (
         <div className="flex flex-col items-center justify-center py-32 text-center">
-          <Inbox size={48} className="text-black/10 mb-4" />
-          <p className="text-lg font-display font-black text-black">Signal Lost</p>
-          <p className="text-sm text-muted mt-2 max-w-xs">Couldn't reach the network. Try again shortly.</p>
+          <Inbox size={48} className="text-white/10 mb-4" />
+          <p className="text-lg font-display font-black text-text-main">Signal Lost</p>
+          <p className="text-sm text-text-muted mt-2 max-w-xs">Couldn't reach the network. Try again shortly.</p>
         </div>
       ) : videos.length > 0 ? (
         <div className="grid gap-x-6 gap-y-12 sm:gap-x-8 sm:gap-y-16 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
@@ -56,9 +56,9 @@ const ExplorePage = () => {
         </div>
       ) : (
         <div className="flex flex-col items-center justify-center py-32 text-center">
-          <TrendingUp size={48} className="text-black/10 mb-4" />
-          <p className="text-lg font-display font-black text-black">Nothing Trending Yet</p>
-          <p className="text-sm text-muted mt-2 max-w-xs">Check back once more content lights up the network.</p>
+          <TrendingUp size={48} className="text-white/10 mb-4" />
+          <p className="text-lg font-display font-black text-text-main">Nothing Trending Yet</p>
+          <p className="text-sm text-text-muted mt-2 max-w-xs">Check back once more content lights up the network.</p>
         </div>
       )}
     </div>

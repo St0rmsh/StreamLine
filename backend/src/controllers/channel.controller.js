@@ -39,6 +39,9 @@ export const createChannel = async (req, res) => {
         let avatarUrl = "";
         let bannerUrl = "";
 
+        console.log("BODY:", req.body);
+        console.log("FILES:", req.files);
+
         if (req.files?.avatar) {
             const uploaded = await uploadFile({
                 buffer: req.files.avatar[0].buffer,

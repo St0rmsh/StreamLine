@@ -30,7 +30,7 @@ const ReactionRow = ({ comment, parentId, currentUser }) => {
       <div className="flex items-center gap-3">
         <button
           onClick={() => setShowBar(!showBar)}
-          className="text-[10px] font-bold text-gray-500 hover:text-stitch-black transition-colors"
+          className="text-[10px] font-bold text-text-muted hover:text-text-main transition-colors"
         >
           React
         </button>
@@ -42,7 +42,7 @@ const ReactionRow = ({ comment, parentId, currentUser }) => {
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
                 onClick={() => handleReaction(emoji)}
-                className="px-2 py-1 text-xs rounded-full bg-gray-100 hover:bg-gray-200 flex items-center gap-1 transition-colors"
+                className="px-2 py-1 text-xs rounded-full bg-white/5 hover:bg-white/10 border border-white/5 flex items-center gap-1 transition-colors"
               >
                 {emoji} {reactions[emoji]}
               </motion.button>
@@ -57,7 +57,7 @@ const ReactionRow = ({ comment, parentId, currentUser }) => {
             initial={{ opacity: 0, y: 5 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 5 }}
-            className="absolute -top-11 left-0 flex gap-2 bg-white shadow-lg border border-border-main px-3 py-1.5 rounded-full z-10"
+            className="absolute -top-11 left-0 flex gap-2 bg-surface shadow-lg border border-border-main px-3 py-1.5 rounded-full z-10"
           >
             {EMOJIS.map((emoji) => (
               <motion.button
@@ -96,7 +96,7 @@ const CommentItem = ({ comment, onReply, currentUser, isReply = false, parentId 
 
   return (
     <div className={`flex gap-3 sm:gap-4 group relative ${isReply ? "mt-4" : ""}`}>
-      <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gray-400 rounded-full flex items-center justify-center text-white text-xs sm:text-sm font-semibold shrink-0 overflow-hidden">
+      <div className="w-8 h-8 sm:w-10 sm:h-10 bg-surface-low border border-white/10 rounded-full flex items-center justify-center text-text-main text-xs sm:text-sm font-black shrink-0 overflow-hidden">
         {comment.user?.avatar ? (
           <img src={comment.user.avatar} className="w-full h-full object-cover" />
         ) : (
@@ -106,16 +106,16 @@ const CommentItem = ({ comment, onReply, currentUser, isReply = false, parentId 
 
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 text-xs sm:text-sm">
-          <span className="font-semibold">{comment.user?.username || "User"}</span>
-          <span className="text-gray-500 text-xs">• {formatTimeAgo(comment.createdAt)}</span>
+          <span className="font-black text-text-main">{comment.user?.username || "User"}</span>
+          <span className="text-text-muted text-xs">• {formatTimeAgo(comment.createdAt)}</span>
         </div>
 
-        <p className="mt-1 text-xs sm:text-sm text-stitch-grey-dark break-words leading-relaxed">
+        <p className="mt-1 text-xs sm:text-sm text-text-muted break-words leading-relaxed">
           {displayedText}
           {comment.text.length > maxLength && (
             <button
               onClick={() => setExpanded(!expanded)}
-              className="ml-1 text-indigo-500 hover:underline text-xs font-bold"
+              className="ml-1 text-brand-orange hover:underline text-xs font-bold"
             >
               {expanded ? "Show less" : "Read more"}
             </button>
@@ -127,7 +127,7 @@ const CommentItem = ({ comment, onReply, currentUser, isReply = false, parentId 
           {!isReply && (
             <button
               onClick={() => setShowReply(!showReply)}
-              className="text-[10px] font-bold text-gray-500 hover:text-stitch-black transition-colors"
+              className="text-[10px] font-bold text-text-muted hover:text-text-main transition-colors"
             >
               Reply
             </button>
@@ -142,9 +142,9 @@ const CommentItem = ({ comment, onReply, currentUser, isReply = false, parentId 
               onKeyDown={(e) => e.key === "Enter" && submitReply()}
               placeholder="Write a reply..."
               autoFocus
-              className="flex-1 border-b border-border-main p-1 text-xs outline-none focus:border-stitch-black transition-colors"
+              className="flex-1 bg-transparent border-b border-border-main p-1 text-xs text-text-main placeholder:text-text-muted outline-none focus:border-brand-orange transition-colors"
             />
-            <button onClick={submitReply} className="text-xs font-bold text-indigo-500 hover:text-indigo-600">Post</button>
+            <button onClick={submitReply} className="text-xs font-bold text-brand-orange hover:text-white transition-colors">Post</button>
           </div>
         )}
 

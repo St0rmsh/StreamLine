@@ -33,7 +33,6 @@ const VideoCard = ({ video }) => {
   const hoverTimeoutRef = useRef(null);
 
   const handleMouseEnter = () => {
-    // Small delay so quick mouse-passes over the grid don't all trigger video loads
     hoverTimeoutRef.current = setTimeout(() => {
       setIsHovering(true);
       videoRef.current?.play().catch(() => {});
@@ -59,7 +58,7 @@ const VideoCard = ({ video }) => {
       onMouseLeave={handleMouseLeave}
     >
       <Link to={`/video/${video?._id}`}>
-        <div className="relative aspect-video rounded-2xl overflow-hidden bg-surface-low mb-4 border border-black/5 shadow-sm group-hover:shadow-[0_20px_40px_rgba(0,0,0,0.12)] transition-all duration-500">
+        <div className="relative aspect-video rounded-2xl overflow-hidden bg-surface-low mb-4 border border-white/5 shadow-sm group-hover:shadow-[0_20px_40px_rgba(0,0,0,0.5)] group-hover:border-brand-orange/20 transition-all duration-500">
           {/* THUMBNAIL */}
           <img
             src={video?.thumbnail || "https://images.unsplash.com/photo-1626814026160-2237a95fc5a0?q=80&w=2070&auto=format&fit=crop"}
@@ -83,9 +82,9 @@ const VideoCard = ({ video }) => {
           {/* AI STATUS BADGE */}
           <div className="absolute top-4 left-4 z-10">
             {video?.verification?.finalVerdict === "TRUE" ? (
-              <div className="bg-white/90 backdrop-blur-xl border border-black/5 px-2.5 py-1 rounded-full flex items-center gap-1.5 shadow-sm">
+              <div className="bg-black/80 backdrop-blur-xl border border-brand-green/30 px-2.5 py-1 rounded-full flex items-center gap-1.5 shadow-sm">
                 <ShieldCheck className="w-3.5 h-3.5 text-brand-green" />
-                <span className="text-[8px] font-black uppercase tracking-[0.2em] text-black">AI Verified</span>
+                <span className="text-[8px] font-black uppercase tracking-[0.2em] text-white">AI Verified</span>
               </div>
             ) : video?.deepfakeScore > 0.5 ? (
               <div className="bg-brand-red/90 backdrop-blur-xl border border-white/10 px-2.5 py-1 rounded-full flex items-center gap-1.5 shadow-sm">
@@ -109,7 +108,7 @@ const VideoCard = ({ video }) => {
                 exit={{ opacity: 0, scale: 0.8 }}
                 className="absolute inset-0 flex items-center justify-center bg-brand-orange/10 pointer-events-none"
               >
-                <div className="w-16 h-16 bg-white/90 backdrop-blur-md rounded-full flex items-center justify-center text-brand-orange shadow-2xl">
+                <div className="w-16 h-16 bg-black/70 backdrop-blur-md border border-white/10 rounded-full flex items-center justify-center text-brand-orange shadow-2xl">
                   <Play fill="currentColor" size={32} className="ml-1" />
                 </div>
               </motion.div>
@@ -121,11 +120,11 @@ const VideoCard = ({ video }) => {
       <div className="flex gap-4 px-1">
         {/* CHANNEL AVATAR */}
         <Link to={`/channel/${channel?.handle || ""}`} className="shrink-0 mt-0.5" onClick={(e) => e.stopPropagation()}>
-          <div className="w-9 h-9 rounded-full bg-surface-low border border-black/5 overflow-hidden flex items-center justify-center shadow-sm transition-colors group-hover:border-black/10">
+          <div className="w-9 h-9 rounded-full bg-surface-low border border-white/10 overflow-hidden flex items-center justify-center shadow-sm transition-colors group-hover:border-brand-orange/40">
             {channel?.avatar ? (
               <img src={channel.avatar} alt={channel.name} className="w-full h-full object-cover" />
             ) : (
-              <span className="font-black text-[10px] opacity-40">{channel?.name?.charAt(0) || "C"}</span>
+              <span className="font-black text-[10px] text-text-muted">{channel?.name?.charAt(0) || "C"}</span>
             )}
           </div>
         </Link>
@@ -133,7 +132,7 @@ const VideoCard = ({ video }) => {
         {/* INFO */}
         <div className="flex flex-col flex-1 min-w-0">
           <Link to={`/video/${video?._id}`}>
-            <h3 className="font-display font-black text-[14px] leading-snug text-black line-clamp-2 transition-colors duration-300">
+            <h3 className="font-display font-black text-[14px] leading-snug text-text-main line-clamp-2 transition-colors duration-300 group-hover:text-brand-orange">
               {video?.title || "Untitled Transmission"}
             </h3>
           </Link>
@@ -141,16 +140,16 @@ const VideoCard = ({ video }) => {
           <div className="mt-1 flex flex-col gap-0.5">
             <Link to={`/channel/${channel?.handle || ""}`} onClick={(e) => e.stopPropagation()}>
               <div className="flex items-center gap-1.5 group/chan">
-                <span className="text-[12px] font-bold text-muted hover:text-black transition-colors">
+                <span className="text-[12px] font-bold text-text-muted hover:text-text-main transition-colors">
                   {channel?.name || "The Curator"}
                 </span>
-                {channel?.verified && <ShieldCheck size={10} className="text-black/40" />}
+                {channel?.verified && <ShieldCheck size={10} className="text-brand-green/70" />}
               </div>
             </Link>
-            <div className="flex items-center gap-3 text-[10px] text-muted font-bold uppercase tracking-tighter">
-              <span className="flex items-center gap-1.5"><Eye size={12} className="text-brand-orange/60" /> {formatViews(video?.views)}</span>
-              <span className="w-1 h-1 rounded-full bg-black/10" />
-              <span className="flex items-center gap-1.5"><Clock size={12} className="text-brand-orange/60" /> {formatTimeAgo(video?.createdAt)}</span>
+            <div className="flex items-center gap-3 text-[10px] text-text-muted font-bold uppercase tracking-tighter">
+              <span className="flex items-center gap-1.5"><Eye size={12} className="text-brand-orange/70" /> {formatViews(video?.views)}</span>
+              <span className="w-1 h-1 rounded-full bg-white/10" />
+              <span className="flex items-center gap-1.5"><Clock size={12} className="text-brand-orange/70" /> {formatTimeAgo(video?.createdAt)}</span>
             </div>
           </div>
         </div>

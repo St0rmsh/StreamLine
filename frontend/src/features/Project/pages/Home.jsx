@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { getAllVideos } from "../services/ytapi.service";
 import VideoCard from "../components/video/VideoCard";
 import SkeletonCard from "../components/video/SkeletonCard";
-import { motion } from "framer-motion";
 import { Inbox } from "lucide-react";
 
 const Home = () => {
@@ -38,9 +37,9 @@ const Home = () => {
         </div>
       ) : error ? (
         <div className="flex flex-col items-center justify-center py-32 text-center">
-          <Inbox size={48} className="text-black/10 mb-4" />
-          <p className="text-lg font-display font-black text-black">Signal Lost</p>
-          <p className="text-sm text-muted mt-2 max-w-xs">
+          <Inbox size={48} className="text-white/10 mb-4" />
+          <p className="text-lg font-display font-black text-text-main">Signal Lost</p>
+          <p className="text-sm text-text-muted mt-2 max-w-xs">
             Couldn't reach the network. Check your connection and try again.
           </p>
         </div>
@@ -52,17 +51,17 @@ const Home = () => {
         </div>
       ) : (
         <div className="flex flex-col items-center justify-center py-32 text-center">
-          <Inbox size={48} className="text-black/10 mb-4" />
-          <p className="text-lg font-display font-black text-black">No Broadcasts Yet</p>
-          <p className="text-sm text-muted mt-2 max-w-xs">
+          <Inbox size={48} className="text-white/10 mb-4" />
+          <p className="text-lg font-display font-black text-text-main">No Broadcasts Yet</p>
+          <p className="text-sm text-text-muted mt-2 max-w-xs">
             Be the first to upload and light up the network.
           </p>
         </div>
       )}
 
       {/* FOOTER */}
-      <div className="mt-32 border-t border-black/5 pt-16 text-center pb-16">
-        <p className="text-[10px] font-black opacity-30 tracking-[0.4em] uppercase">
+      <div className="mt-32 border-t border-border-main pt-16 text-center pb-16">
+        <p className="text-[10px] font-black text-text-muted tracking-[0.4em] uppercase opacity-50">
           Neural Content Verification Network &copy; 2026
         </p>
       </div>

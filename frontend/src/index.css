@@ -1,5 +1,73 @@
 @import "tailwindcss";
 
+@theme {
+  /* ── Core surfaces ───────────────────────── */
+  --color-bg: #0A0A0A;
+  --color-surface-low: #121212;
+  --color-surface: #171717;
+  --color-surface-high: #1F1F1F;
+  --color-border-main: rgba(255, 255, 255, 0.08);
 
+  /* ── Text ─────────────────────────────────── */
+  --color-text-main: #FFFFFF;
+  --color-text-muted: #8F8F8F;
 
+  /* ── Brand (StreamVue red/black editorial) ── */
+  --color-brand-orange: #E8302A;   /* primary accent / CTA */
+  --color-brand-red: #FF3B30;      /* danger / dislike / delete */
+  --color-brand-green: #22C55E;    /* success / verified */
+  --color-brand-emerald: #22C55E;
+  --color-brand-crimson: #FF3B30;
+  --color-brand-indigo: #E8302A;   /* legacy name → mapped to accent */
+  --color-brand-purple: #E8302A;
+  --color-brand-tan: #E8302A;
+  --color-brand-earth: #C9A876;    /* warm neutral, used for "AI disclosure" badges */
 
+  /* ── Legacy "stitch-*" names used across pages ── */
+  --color-stitch-black: #0A0A0A;
+  --color-stitch-grey: #141414;
+  --color-stitch-grey-dark: #B8B8B8;
+  --color-stitch-accent: #E8302A;
+  --color-stitch-earth: #C9A876;
+  --color-stitch-green: #22C55E;
+
+  --font-display: "Archivo", "Inter", system-ui, sans-serif;
+}
+
+/* ── Contrast pair used by SubscribeButton's inline <style> ── */
+:root {
+  --contrast-bg: #FFFFFF;
+  --contrast-text: #0A0A0A;
+}
+
+html, body {
+  background-color: var(--color-bg);
+  color: var(--color-text-main);
+}
+
+/* ── Utility classes referenced across components ── */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+.glass {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.glass-heavy {
+  background: rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(32px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.ai-glow-indigo {
+  box-shadow: 0 0 40px -8px rgba(232, 48, 42, 0.35);
+}
+.ai-glow-emerald {
+  box-shadow: 0 0 40px -8px rgba(34, 197, 94, 0.35);
+}
+
+@keyframes shimmer {
+  100% { transform: translateX(100%); }
+}

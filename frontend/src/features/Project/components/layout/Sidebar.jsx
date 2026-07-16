@@ -41,7 +41,7 @@ const Sidebar = ({ open, setOpen, collapsed }) => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/40 backdrop-blur-[2px] z-40 lg:hidden"
+            className="fixed inset-0 bg-black/60 backdrop-blur-[2px] z-40 lg:hidden"
             onClick={() => setOpen(false)}
           />
         )}
@@ -50,7 +50,7 @@ const Sidebar = ({ open, setOpen, collapsed }) => {
       <aside
         className={`
           fixed lg:sticky top-0 lg:top-16 left-0 h-full lg:h-[calc(100vh-4rem)] z-50
-          glass lg:bg-transparent lg:border-r-0 lg:backdrop-blur-0
+          bg-bg border-r border-border-main lg:bg-transparent lg:border-r-0
           transition-all duration-300 ease-in-out
 
           ${open ? "translate-x-0" : "-translate-x-full"}
@@ -63,18 +63,18 @@ const Sidebar = ({ open, setOpen, collapsed }) => {
         <div className="p-4 flex-1 flex flex-col gap-4 overflow-y-auto no-scrollbar">
 
           {/* MOBILE LOGO & CLOSE */}
-          <div className="lg:hidden flex items-center justify-between mb-4 border-b border-main pb-4">
+          <div className="lg:hidden flex items-center justify-between mb-4 border-b border-border-main pb-4">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-black flex items-center justify-center text-white font-black">
+              <div className="w-8 h-8 rounded-lg bg-brand-orange flex items-center justify-center text-white font-black">
                 S
               </div>
-              <span className="font-display font-black text-lg tracking-tight text-main uppercase italic">
-                Sti<span className="text-brand-orange">tch</span>
+              <span className="font-display font-black text-lg tracking-tight text-text-main uppercase italic">
+                Stream<span className="text-brand-orange">Vue</span>
               </span>
             </div>
             <button
               onClick={() => setOpen(false)}
-              className="p-1.5 rounded-lg text-muted hover:bg-black/5 transition-colors"
+              className="p-1.5 rounded-lg text-text-muted hover:bg-white/5 transition-colors"
             >
               <X className="w-5 h-5" />
             </button>
@@ -91,7 +91,7 @@ const Sidebar = ({ open, setOpen, collapsed }) => {
                   `flex items-center gap-4 px-3.5 py-3 rounded-2xl transition-all duration-300 group relative
                   ${isActive
                     ? "bg-brand-orange/10 text-brand-orange font-bold shadow-sm"
-                    : "text-muted hover:bg-brand-orange/5 hover:text-main"
+                    : "text-text-muted hover:bg-white/5 hover:text-text-main"
                   }`
                 }
               >
@@ -111,22 +111,22 @@ const Sidebar = ({ open, setOpen, collapsed }) => {
             ))}
           </nav>
 
-          <div className="mt-auto pt-4 border-t border-main ">
+          <div className="mt-auto pt-4 border-t border-border-main">
             {user ? (
               <button
                 onClick={onLogout}
-                className="w-full  flex cursor-pointer items-center gap-4 px-3.5 py-3 rounded-2xl text-brand-red hover:bg-brand-red/10 font-black text-[10px] uppercase tracking-widest transition-all group"
+                className="w-full cursor-pointer flex items-center gap-4 px-3.5 py-3 rounded-2xl text-brand-red hover:bg-brand-red/10 font-black text-[10px] uppercase tracking-widest transition-all group"
               >
                 <LogOut className="w-5 h-5 shrink-0 transition-transform group-hover:-translate-x-1" />
-                {!collapsed && <span className="whitespace-nowrap text-green-600">Sign Out</span>}
+                {!collapsed && <span className="whitespace-nowrap">Sign Out</span>}
               </button>
             ) : (
               <button
                 onClick={() => { setOpen(false); navigate("/login"); }}
-                className="w-full cursor-pointer flex items-center gap-4 px-3.5 py-3 rounded-2xl bg-brand-orange text-green-600 font-black text-[10px] uppercase tracking-widest transition-all hover:bg-brand-orange/90"
+                className="w-full cursor-pointer flex items-center gap-4 px-3.5 py-3 rounded-2xl bg-brand-orange text-white font-black text-[10px] uppercase tracking-widest transition-all hover:bg-white hover:text-black"
               >
-                <LogOut className="w-5 cursor-pointer h-5 shrink-0 rotate-180" />
-                {!collapsed && <span className="whitespace-nowrap text-green-600">Sign In</span>}
+                <LogOut className="w-5 h-5 shrink-0 rotate-180" />
+                {!collapsed && <span className="whitespace-nowrap">Sign In</span>}
               </button>
             )}
           </div>

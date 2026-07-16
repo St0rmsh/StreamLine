@@ -1,18 +1,18 @@
-import ImageKit from "@imagekit/nodejs";
+import ImageKit, { toFile } from "@imagekit/nodejs";
 import config from "../config/config.js";
 
 const imagekit = new ImageKit({
-  publicKey: config.IMAGEKIT_PUBLIC_KEY,
-  privateKey: config.IMAGEKIT_PRIVATE_KEY,
-  urlEndpoint: config.IMAGEKIT_URL_ENDPOINT,
+  publicKey: config.IMAGEKIT_PUBLIC_KEY
 });
 
 export const uploadFile = async ({ buffer, filename, folder = "/general" }) => {
   try {
+    const imageFile = await toFile(buffer, filename);
+
     const result = await imagekit.files.upload({
-      file: buffer,
-      fileName: `${Date.now()}-${filename}`,
-      folder: folder,
+    file: imageFile,
+    fileName: `${Date.now()}-${filename}`,
+    folder,
     });
 
     if (!result || !result.url) {

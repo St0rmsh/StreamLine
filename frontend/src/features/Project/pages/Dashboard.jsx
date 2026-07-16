@@ -1,12 +1,12 @@
 import { useEffect, useState, useRef } from "react";
-import { UploadCloud, X, Image as ImageIcon, Video, Sparkles, Users, Eye, Settings, ShieldCheck, Edit, Trash2, Search, Clock, Play, Activity, Zap, Cpu, Radio } from "lucide-react";
+import { UploadCloud, X, Image as ImageIcon, Sparkles, Users, Eye, Settings, ShieldCheck, Edit, Trash2, Search, Clock, Play, Activity, Zap, Cpu, Radio, TrendingUp, DollarSign, Bell } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { XAxis, YAxis, Tooltip, ResponsiveContainer, AreaChart, Area, CartesianGrid } from "recharts";
 import { toast } from "react-hot-toast";
 import { getMyVideos, getMyChannel, updateChannel, uploadVideo, createChannel, getStudioStats, deleteVideo, updateVideo } from "../services/ytapi.service";
 import TrustMeter from "../components/UI/TrustMeter";
 
-// --- ELAPSED TIMER COMPONENT ---
+// --- ELAPSED TIMER ---
 const ElapsedTimer = ({ createdAt }) => {
     const [elapsed, setElapsed] = useState("");
 
@@ -25,12 +25,12 @@ const ElapsedTimer = ({ createdAt }) => {
         return () => clearInterval(id);
     }, [createdAt]);
 
-    return <span className="text-zinc-600 text-[9px] font-bold uppercase tracking-widest tabular-nums">{elapsed}</span>;
+    return <span className="text-text-muted text-[9px] font-bold uppercase tracking-widest tabular-nums">{elapsed}</span>;
 };
 
-// --- CUSTOM COMPONENTS ---
+// --- SHARED UI PRIMITIVES ---
 const GlassContainer = ({ children, className = "" }) => (
-    <div className={`bg-white/[0.03] backdrop-blur-3xl border border-white/5 rounded-sm ${className}`}>
+    <div className={`bg-white/[0.02] backdrop-blur-3xl border border-border-main rounded-sm ${className}`}>
         {children}
     </div>
 );
@@ -38,12 +38,12 @@ const GlassContainer = ({ children, className = "" }) => (
 const PrecisionInput = ({ label, ...props }) => (
     <div className="space-y-1.5 w-full">
         {label && (
-            <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/40 ml-1">
+            <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-text-muted ml-1">
                 {label}
             </label>
         )}
         <input
-            className="w-full bg-white/[0.02] border-b border-white/10 px-4 py-3 text-sm font-medium text-white placeholder:text-white/20 focus:border-white focus:bg-white/[0.05] outline-none transition-all duration-300"
+            className="w-full bg-white/[0.02] border-b border-border-main px-4 py-3 text-sm font-medium text-text-main placeholder:text-white/20 focus:border-brand-orange focus:bg-white/[0.05] outline-none transition-all duration-300"
             {...props}
         />
     </div>
@@ -51,10 +51,10 @@ const PrecisionInput = ({ label, ...props }) => (
 
 const ForensicButton = ({ children, variant = "primary", className = "", ...props }) => {
     const variants = {
-        primary: "bg-white text-black hover:bg-zinc-200",
-        secondary: "bg-zinc-800 text-white hover:bg-zinc-700",
-        ghost: "bg-transparent border border-white/10 text-white hover:bg-white/5",
-        danger: "bg-red-500/10 text-red-500 hover:bg-red-500/20"
+        primary: "bg-brand-orange text-white hover:bg-white hover:text-black",
+        secondary: "bg-surface-high text-text-main hover:bg-white/10",
+        ghost: "bg-transparent border border-border-main text-text-main hover:bg-white/5",
+        danger: "bg-brand-red/10 text-brand-red hover:bg-brand-red/20"
     };
 
     return (
@@ -66,6 +66,18 @@ const ForensicButton = ({ children, variant = "primary", className = "", ...prop
         </button>
     );
 };
+
+// --- METRIC CARD (top row, matches reference) ---
+const MetricCard = ({ label, value, delta, icon: Icon, highlight = false }) => (
+    <div className={`p-6 sm:p-8 space-y-4 border ${highlight ? "bg-gradient-to-br from-brand-orange to-brand-red/80 border-transparent" : "bg-white/[0.02] border-border-main"}`}>
+        <div className="flex justify-between items-start">
+            <p className={`text-[9px] font-bold uppercase tracking-[0.3em] ${highlight ? "text-white/80" : "text-text-muted"}`}>{label}</p>
+            {Icon && <Icon size={16} className={highlight ? "text-white/80" : "text-text-muted"} />}
+        </div>
+        <p className={`text-4xl sm:text-5xl font-black tracking-tighter leading-none ${highlight ? "text-white" : "text-text-main"}`}>{value}</p>
+        {delta && <p className={`text-[10px] font-bold uppercase tracking-widest ${highlight ? "text-white/70" : "text-text-muted"}`}>{delta}</p>}
+    </div>
+);
 
 const Dashboard = () => {
     const [videos, setVideos] = useState([]);
@@ -79,8 +91,6 @@ const Dashboard = () => {
     const [showEditVideo, setShowEditVideo] = useState(null);
     const [uploadProgress, setUploadProgress] = useState(0);
 
-    // Refs — kept fully separate per surface so a click never targets an
-    // input element that isn't actually mounted (see fix notes below)
     const uploadFileRef = useRef(null);
     const uploadThumbRef = useRef(null);
     const editThumbRef = useRef(null);
@@ -89,7 +99,6 @@ const Dashboard = () => {
     const editAvatarRef = useRef(null);
     const editBannerRef = useRef(null);
 
-    // Forms
     const [videoForm, setVideoForm] = useState({ title: "", description: "", video: null, thumbnail: null, isAiGenerated: false });
     const [thumbnailPreview, setThumbnailPreview] = useState(null);
     const [editVideoForm, setEditVideoForm] = useState({ title: "", description: "", visibility: "public", isPublished: true, thumbnail: null });
@@ -160,6 +169,16 @@ const Dashboard = () => {
         bucket: `${i * 5}%`,
         value: val
     })) || [];
+
+    // recent activity feed derived from real video data (no fabricated numbers)
+    const latestEvents = [...videos]
+        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+        .slice(0, 3)
+        .map(v => ({
+            label: v.title,
+            sub: v.status === "ready" ? "Published" : v.status || "Processing",
+            time: v.createdAt
+        }));
 
     // Handlers
     const handleUpload = async () => {
@@ -254,33 +273,33 @@ const Dashboard = () => {
     };
 
     if (loading) return (
-        <div className="min-h-screen bg-[#0A0A0A] flex flex-col items-center justify-center space-y-6">
+        <div className="min-h-screen bg-bg flex flex-col items-center justify-center space-y-6">
             <div className="w-16 h-1 bg-white/10 relative overflow-hidden">
                 <motion.div
                     initial={{ left: '-100%' }}
                     animate={{ left: '100%' }}
                     transition={{ repeat: Infinity, duration: 1.5, ease: "linear" }}
-                    className="absolute inset-0 w-1/2 bg-white"
+                    className="absolute inset-0 w-1/2 bg-brand-orange"
                 />
             </div>
-            <div className="text-[10px] font-bold uppercase tracking-[0.4em] text-white/40">Loading Dashboard...</div>
+            <div className="text-[10px] font-bold uppercase tracking-[0.4em] text-text-muted">Loading Dashboard...</div>
         </div>
     );
 
     // ONBOARDING
     if (!channel) {
         return (
-            <div className="min-h-screen bg-[#0A0A0A] flex flex-col items-center justify-center p-8 selection:bg-white selection:text-black">
+            <div className="min-h-screen bg-bg flex flex-col items-center justify-center p-8 selection:bg-brand-orange selection:text-white">
                 <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="max-w-xl w-full space-y-12">
                     <div className="space-y-4 text-center">
-                        <div className="w-20 h-20 bg-white/[0.03] border border-white/10 rounded-sm flex items-center justify-center mx-auto text-white overflow-hidden">
-                            {avatarPreview ? <img src={avatarPreview} className="w-full h-full object-cover" /> : <Radio size={32} className="opacity-40" />}
+                        <div className="w-20 h-20 bg-white/[0.03] border border-border-main rounded-sm flex items-center justify-center mx-auto text-text-main overflow-hidden">
+                            {avatarPreview ? <img src={avatarPreview} className="w-full h-full object-cover" /> : <Radio size={32} className="text-brand-orange opacity-60" />}
                         </div>
                         <div className="space-y-2">
-                            <h1 className="text-5xl font-black tracking-tighter uppercase leading-none text-white">
-                                Create Your <span className="opacity-40 text-zinc-500">Channel.</span>
+                            <h1 className="text-5xl font-black tracking-tighter uppercase leading-none text-text-main">
+                                Create Your <span className="text-brand-orange">Channel.</span>
                             </h1>
-                            <p className="text-zinc-500 font-medium text-[10px] tracking-[0.2em] uppercase">Set up your profile and start sharing.</p>
+                            <p className="text-text-muted font-medium text-[10px] tracking-[0.2em] uppercase">Set up your profile and start sharing.</p>
                         </div>
                     </div>
 
@@ -303,22 +322,22 @@ const Dashboard = () => {
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <button
                                 onClick={() => onboardAvatarRef.current?.click()}
-                                className="p-6 bg-white/[0.02] border border-white/5 hover:border-white/20 transition-all text-left"
+                                className="p-6 bg-white/[0.02] border border-border-main hover:border-brand-orange/40 transition-all text-left"
                             >
-                                <label className="text-[9px] font-bold uppercase text-zinc-500 block mb-3 tracking-widest">Profile Picture</label>
+                                <label className="text-[9px] font-bold uppercase text-text-muted block mb-3 tracking-widest">Profile Picture</label>
                                 <div className="flex items-center gap-3">
-                                    <ImageIcon size={14} className="opacity-30" />
-                                    <span className="text-[10px] font-bold text-white truncate uppercase">{createForm.avatar ? createForm.avatar.name : "Select Image"}</span>
+                                    <ImageIcon size={14} className="opacity-40" />
+                                    <span className="text-[10px] font-bold text-text-main truncate uppercase">{createForm.avatar ? createForm.avatar.name : "Select Image"}</span>
                                 </div>
                             </button>
                             <button
                                 onClick={() => onboardBannerRef.current?.click()}
-                                className="p-6 bg-white/[0.02] border border-white/5 hover:border-white/20 transition-all text-left"
+                                className="p-6 bg-white/[0.02] border border-border-main hover:border-brand-orange/40 transition-all text-left"
                             >
-                                <label className="text-[9px] font-bold uppercase text-zinc-500 block mb-3 tracking-widest">Channel Banner</label>
+                                <label className="text-[9px] font-bold uppercase text-text-muted block mb-3 tracking-widest">Channel Banner</label>
                                 <div className="flex items-center gap-3">
-                                    <ImageIcon size={14} className="opacity-30" />
-                                    <span className="text-[10px] font-bold text-white truncate uppercase">{createForm.banner ? createForm.banner.name : "Select Image"}</span>
+                                    <ImageIcon size={14} className="opacity-40" />
+                                    <span className="text-[10px] font-bold text-text-main truncate uppercase">{createForm.banner ? createForm.banner.name : "Select Image"}</span>
                                 </div>
                             </button>
                         </div>
@@ -364,26 +383,20 @@ const Dashboard = () => {
     }
 
     return (
-        <div className="min-h-screen bg-[#0A0A0A] text-white font-sans selection:bg-white selection:text-black">
-            <div className="max-w-[1400px] mx-auto px-8 py-16 space-y-16">
+        <div className="min-h-screen bg-bg text-text-main font-sans selection:bg-brand-orange selection:text-white">
+            <div className="max-w-[1400px] mx-auto px-4 sm:px-8 py-10 sm:py-16 space-y-12">
 
-                {/* HEADER / CHANNEL SETTINGS */}
-                <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-10 border-b border-white/5 pb-16">
-                    <div className="flex items-center gap-8">
-                        <div className="w-24 h-24 bg-white/[0.03] border border-white/10 rounded-sm overflow-hidden flex items-center justify-center">
-                            {channel?.avatar ? (
-                                <img src={channel.avatar} className="w-full h-full object-cover" />
-                            ) : (
-                                <Users size={40} className="opacity-20" />
-                            )}
+                {/* ═══════════ HEADER: CREATOR COMMAND ═══════════ */}
+                <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-8 border-b border-border-main pb-10">
+                    <div className="space-y-3">
+                        <p className="text-[9px] font-bold uppercase tracking-[0.4em] text-brand-orange">Premium Creator</p>
+                        <div className="flex items-center gap-4">
+                            <h1 className="text-5xl sm:text-6xl font-black uppercase tracking-tighter leading-none">Creator Command</h1>
+                            <div className="w-2 h-2 bg-brand-green rounded-full animate-pulse mb-2" />
                         </div>
-                        <div className="space-y-2">
-                            <div className="flex items-center gap-3">
-                                <h1 className="text-6xl font-black uppercase tracking-tighter leading-none">{channel?.name || "DASHBOARD"}</h1>
-                                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse mt-2" />
-                            </div>
-                            <p className="text-[10px] font-bold uppercase tracking-[0.4em] text-zinc-500">Handle: @{channel?.handle || "undefined"}</p>
-                        </div>
+                        <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-text-muted">
+                            {channel?.name} · @{channel?.handle}
+                        </p>
                     </div>
 
                     <div className="flex flex-wrap gap-4 w-full lg:w-auto">
@@ -400,7 +413,7 @@ const Dashboard = () => {
                             }
                             setShowEdit(true);
                         }}>
-                            <Settings size={14} className="opacity-50" /> Channel Settings
+                            <Settings size={14} /> Channel Settings
                         </ForensicButton>
                         <ForensicButton variant="primary" onClick={() => setShowUpload(true)}>
                             <UploadCloud size={14} /> Upload Video
@@ -408,115 +421,212 @@ const Dashboard = () => {
                     </div>
                 </div>
 
-                {/* METRICS GRID */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                    {[
-                        { label: "Total Views", value: (stats?.totalViews || 0).toLocaleString(), icon: Eye },
-                        { label: "Watch Time", value: `${stats?.watchTimeHours || 0}H`, icon: Clock },
-                        { label: "Subscribers", value: (stats?.subscribers || 0).toLocaleString(), icon: Users },
-                        { label: "Trust Score", value: `${stats?.avgTrustScore || 0}%`, icon: ShieldCheck },
-                    ].map((s, i) => (
-                        <div key={i} className="bg-white/[0.02] border border-white/5 p-8 space-y-4 group transition-all hover:bg-white/[0.04]">
-                            <div className="flex justify-between items-start">
-                                <p className="text-[9px] font-bold uppercase tracking-[0.3em] text-zinc-500">{s.label}</p>
-                                <s.icon size={14} className="text-zinc-600 group-hover:text-white transition-colors" />
-                            </div>
-                            <p className="text-5xl font-black tracking-tighter leading-none">{s.value}</p>
-                        </div>
-                    ))}
+                {/* ═══════════ METRIC ROW ═══════════ */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <MetricCard
+                        label="Total Views"
+                        value={(stats?.totalViews || 0).toLocaleString()}
+                        delta="Across all uploads"
+                        icon={Eye}
+                    />
+                    <MetricCard
+                        label="Watch Time"
+                        value={`${stats?.watchTimeHours || 0}H`}
+                        delta="Cumulative"
+                        icon={Clock}
+                    />
+                    <MetricCard
+                        label="Subscribers"
+                        value={(stats?.subscribers || 0).toLocaleString()}
+                        delta="Total followers"
+                        icon={Users}
+                    />
+                    <MetricCard
+                        label="Trust Score"
+                        value={`${stats?.avgTrustScore || 0}%`}
+                        delta="Network average"
+                        icon={ShieldCheck}
+                        highlight
+                    />
                 </div>
 
-                {/* DATA VISUALIZATION SECTION */}
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                {/* ═══════════ RETENTION + LIVE PULSE ═══════════ */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+                    {/* Retention chart — 2/3 width */}
                     <div className="lg:col-span-2 space-y-6">
-                        <div className="flex justify-between items-center px-2">
-                            <h3 className="text-xs font-bold uppercase tracking-[0.3em] text-white flex items-center gap-3">
-                                <Activity size={14} className="text-zinc-400" /> Audience Retention
+                        <div className="flex justify-between items-center px-1">
+                            <h3 className="text-xs font-bold uppercase tracking-[0.3em] text-text-main flex items-center gap-3">
+                                <Activity size={14} className="text-brand-orange" /> Audience Retention
                             </h3>
-                            <div className="text-[9px] font-bold text-zinc-600 uppercase tracking-widest">Real-Time Data</div>
+                            <div className="text-[9px] font-bold text-text-muted uppercase tracking-widest">Real-Time Data</div>
                         </div>
-                        <div className="bg-white/[0.02] border border-white/5 p-10 h-[350px]">
+                        <div className="bg-white/[0.02] border border-border-main p-6 sm:p-10 h-[350px]">
                             {retentionData.some(d => d.value > 0) ? (
                                 <ResponsiveContainer width="100%" height="100%">
                                     <AreaChart data={retentionData}>
                                         <defs>
                                             <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
-                                                <stop offset="5%" stopColor="#FFFFFF" stopOpacity={0.1} />
-                                                <stop offset="95%" stopColor="#FFFFFF" stopOpacity={0} />
+                                                <stop offset="5%" stopColor="#E8302A" stopOpacity={0.4} />
+                                                <stop offset="95%" stopColor="#E8302A" stopOpacity={0} />
                                             </linearGradient>
                                         </defs>
-                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.03)" />
+                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.04)" />
                                         <XAxis
                                             dataKey="bucket"
                                             axisLine={false}
                                             tickLine={false}
-                                            tick={{ fontSize: 9, fontWeight: 700, fill: '#444', letterSpacing: '0.1em' }}
+                                            tick={{ fontSize: 9, fontWeight: 700, fill: '#8F8F8F', letterSpacing: '0.1em' }}
                                         />
                                         <YAxis
                                             axisLine={false}
                                             tickLine={false}
-                                            tick={{ fontSize: 9, fontWeight: 700, fill: '#444' }}
+                                            tick={{ fontSize: 9, fontWeight: 700, fill: '#8F8F8F' }}
                                         />
                                         <Tooltip
-                                            contentStyle={{ backgroundColor: '#111', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '0', fontSize: '10px' }}
+                                            contentStyle={{ backgroundColor: '#171717', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '0', fontSize: '10px' }}
                                             itemStyle={{ color: '#FFF', fontWeight: 'bold' }}
+                                            labelStyle={{ color: '#8F8F8F' }}
                                         />
                                         <Area
                                             type="monotone"
                                             dataKey="value"
-                                            stroke="#FFFFFF"
-                                            strokeWidth={1}
+                                            stroke="#E8302A"
+                                            strokeWidth={2}
                                             fillOpacity={1}
                                             fill="url(#colorValue)"
-                                            animationDuration={2000}
+                                            animationDuration={1500}
                                         />
                                     </AreaChart>
                                 </ResponsiveContainer>
                             ) : (
                                 <div className="w-full h-full flex flex-col items-center justify-center text-center">
-                                    <Activity size={32} className="text-zinc-700 mb-4" />
-                                    <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-600">Not enough watch data yet</p>
-                                    <p className="text-[9px] text-zinc-700 mt-1 uppercase tracking-widest">Retention builds up as viewers watch your videos</p>
+                                    <Activity size={32} className="text-white/10 mb-4" />
+                                    <p className="text-[10px] font-bold uppercase tracking-widest text-text-muted">Not enough watch data yet</p>
+                                    <p className="text-[9px] text-text-muted/60 mt-1 uppercase tracking-widest">Retention builds up as viewers watch your videos</p>
                                 </div>
                             )}
                         </div>
                     </div>
 
-                    <div className="space-y-4">
-                        <div className="bg-white/[0.02] border border-white/5 p-10 space-y-8 flex flex-col justify-between h-full">
-                            <div className="space-y-6">
-                                <div className="w-12 h-12 bg-white flex items-center justify-center text-black">
-                                    <Cpu size={24} />
+                    {/* Live Pulse — 1/3 width, matches reference panel */}
+                    <div className="space-y-6">
+                        <div className="flex justify-between items-center px-1">
+                            <h3 className="text-xs font-bold uppercase tracking-[0.3em] text-text-main flex items-center gap-3">
+                                <Zap size={14} className="text-brand-orange" /> Live Pulse
+                            </h3>
+                            <div className="flex items-center gap-1.5 text-[9px] font-bold text-brand-green uppercase tracking-widest">
+                                <div className="w-1.5 h-1.5 bg-brand-green rounded-full animate-pulse" /> Real-Time
+                            </div>
+                        </div>
+
+                        <div className="bg-white/[0.02] border border-border-main p-6 sm:p-8 space-y-8 h-[350px] overflow-y-auto no-scrollbar">
+                            <div className="space-y-2">
+                                <div className="flex justify-between text-[9px] font-bold uppercase tracking-widest text-text-muted">
+                                    <span>Total Videos</span>
+                                    <span className="text-text-main">{stats?.totalVideos ?? videos.length}</span>
                                 </div>
-                                <div className="space-y-2">
-                                    <h3 className="text-3xl font-black uppercase tracking-tighter leading-none">Channel <br /> Health.</h3>
-                                    <p className="text-[10px] font-medium text-zinc-500 leading-relaxed uppercase tracking-wider">
-                                        Videos: <span className="text-white">{stats?.totalVideos ?? videos.length}</span><br />
-                                        Trust Score: <span className="text-white">{stats?.avgTrustScore || 0}%</span>
-                                    </p>
+                                <div className="h-[2px] w-full bg-white/5">
+                                    <div className="h-full bg-brand-orange" style={{ width: "100%" }} />
                                 </div>
                             </div>
-                            <div className="pt-8 border-t border-white/5">
-                                <TrustMeter score={stats?.avgTrustScore || 0} />
+
+                            <div className="space-y-2">
+                                <div className="flex justify-between text-[9px] font-bold uppercase tracking-widest text-text-muted">
+                                    <span>Published</span>
+                                    <span className="text-text-main">{videos.filter(v => v.isPublished || v.status === "ready").length}</span>
+                                </div>
+                                <div className="h-[2px] w-full bg-white/5">
+                                    <div className="h-full bg-brand-green" style={{ width: `${videos.length ? (videos.filter(v => v.isPublished || v.status === "ready").length / videos.length) * 100 : 0}%` }} />
+                                </div>
+                            </div>
+
+                            <div className="pt-4 border-t border-border-main space-y-4">
+                                <p className="text-[9px] font-bold uppercase tracking-[0.3em] text-text-muted flex items-center gap-2">
+                                    <Bell size={11} /> Latest Activity
+                                </p>
+                                {latestEvents.length > 0 ? latestEvents.map((ev, i) => (
+                                    <div key={i} className="space-y-0.5">
+                                        <p className="text-[10px] font-bold text-text-main truncate">{ev.label}</p>
+                                        <p className="text-[9px] text-text-muted uppercase tracking-widest">{ev.sub} · <ElapsedTimer createdAt={ev.time} /> ago</p>
+                                    </div>
+                                )) : (
+                                    <p className="text-[9px] text-text-muted uppercase tracking-widest">No recent activity</p>
+                                )}
                             </div>
                         </div>
                     </div>
                 </div>
 
-                {/* VIDEO MANAGEMENT */}
-                <div className="space-y-10">
-                    <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 border-b border-white/5 pb-8">
+                {/* ═══════════ RECENT UPLOADS (quick strip) ═══════════ */}
+                {videos.length > 0 && (
+                    <div className="space-y-6">
+                        <div className="flex justify-between items-center px-1">
+                            <h3 className="text-xs font-bold uppercase tracking-[0.3em] text-text-main flex items-center gap-3">
+                                <Play size={14} className="text-brand-orange" /> Recent Uploads
+                            </h3>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {videos.slice(0, 3).map(v => (
+                                <div key={v._id} className="bg-white/[0.02] border border-border-main group cursor-pointer" onClick={() => {
+                                    setShowEditVideo(v);
+                                    setEditThumbnailPreview(v.thumbnail);
+                                    setEditVideoForm({
+                                        title: v.title,
+                                        description: v.description,
+                                        visibility: v.visibility,
+                                        isPublished: v.isPublished,
+                                        thumbnail: null
+                                    });
+                                }}>
+                                    <div className="relative aspect-video bg-surface-low overflow-hidden">
+                                        <img src={v.thumbnail} className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-700" />
+                                        <div className="absolute bottom-2 right-2 bg-black/80 text-white text-[9px] font-black px-1.5 py-0.5 uppercase">
+                                            {v.status === "ready" ? "Live" : v.status}
+                                        </div>
+                                    </div>
+                                    <div className="p-4 space-y-1.5">
+                                        <p className="text-xs font-bold text-text-main truncate">{v.title}</p>
+                                        <p className="text-[9px] font-bold text-text-muted uppercase tracking-widest">{(v.views || 0).toLocaleString()} views</p>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
+                {/* ═══════════ TRUST METER (compact, standalone) ═══════════ */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div className="lg:col-span-1">
+                        <TrustMeter score={stats?.avgTrustScore || 0} />
+                    </div>
+                    <div className="lg:col-span-2 bg-white/[0.02] border border-border-main p-8 flex flex-col justify-center space-y-4">
+                        <div className="w-12 h-12 bg-brand-orange flex items-center justify-center text-white">
+                            <Cpu size={22} />
+                        </div>
+                        <h3 className="text-2xl font-black uppercase tracking-tighter">Channel Health</h3>
+                        <p className="text-[10px] font-medium text-text-muted leading-relaxed uppercase tracking-wider">
+                            Videos: <span className="text-text-main">{stats?.totalVideos ?? videos.length}</span> ·
+                            {" "}Trust Score: <span className="text-text-main">{stats?.avgTrustScore || 0}%</span> ·
+                            {" "}Subscribers: <span className="text-text-main">{(stats?.subscribers || 0).toLocaleString()}</span>
+                        </p>
+                    </div>
+                </div>
+
+                {/* ═══════════ VIDEO MANAGEMENT TABLE ═══════════ */}
+                <div className="space-y-8">
+                    <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 border-b border-border-main pb-8">
                         <div className="space-y-1">
-                            <h3 className="text-3xl font-black uppercase tracking-tighter">Video Management</h3>
-                            <p className="text-[9px] font-bold uppercase tracking-[0.4em] text-zinc-500">Your uploaded videos</p>
+                            <h3 className="text-2xl sm:text-3xl font-black uppercase tracking-tighter">Video Management</h3>
+                            <p className="text-[9px] font-bold uppercase tracking-[0.4em] text-text-muted">Your uploaded videos</p>
                         </div>
                         <div className="relative w-full md:w-80">
-                            <Search size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-600" />
+                            <Search size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted" />
                             <input
                                 placeholder="SEARCH VIDEOS..."
                                 value={searchQuery}
                                 onChange={e => setSearchQuery(e.target.value)}
-                                className="w-full bg-white/[0.02] border border-white/10 rounded-sm pl-12 pr-4 py-3 text-[10px] font-bold uppercase tracking-widest text-white focus:border-white outline-none"
+                                className="w-full bg-white/[0.02] border border-border-main rounded-sm pl-12 pr-4 py-3 text-[10px] font-bold uppercase tracking-widest text-text-main placeholder:text-text-muted focus:border-brand-orange outline-none"
                             />
                         </div>
                     </div>
@@ -524,7 +634,7 @@ const Dashboard = () => {
                     <div className="overflow-x-auto">
                         <table className="w-full text-left">
                             <thead>
-                                <tr className="text-[9px] font-bold uppercase tracking-[0.3em] text-zinc-600 border-b border-white/5">
+                                <tr className="text-[9px] font-bold uppercase tracking-[0.3em] text-text-muted border-b border-border-main">
                                     <th className="py-6 px-4 font-bold">Video</th>
                                     <th className="py-6 px-4 font-bold">Visibility</th>
                                     <th className="py-6 px-4 font-bold">Performance</th>
@@ -532,25 +642,25 @@ const Dashboard = () => {
                                     <th className="py-6 px-4 text-right font-bold">Actions</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-white/5">
+                            <tbody className="divide-y divide-border-main">
                                 {filteredVideos.length > 0 ? (
                                     filteredVideos.map(v => (
-                                        <tr key={v._id} className="group hover:bg-white/[0.01] transition-colors">
+                                        <tr key={v._id} className="group hover:bg-white/[0.015] transition-colors">
                                             <td className="py-8 px-4">
                                                 <div className="flex gap-6 items-center">
-                                                    <div className="w-32 aspect-video bg-zinc-900 border border-white/5 overflow-hidden shrink-0 relative grayscale group-hover:grayscale-0 transition-all duration-700">
+                                                    <div className="w-32 aspect-video bg-surface-low border border-border-main overflow-hidden shrink-0 relative grayscale group-hover:grayscale-0 transition-all duration-700">
                                                         <img src={v.thumbnail} className="w-full h-full object-cover" />
-                                                        <div className="absolute inset-x-0 bottom-0 h-[1px] bg-white/20">
-                                                            <div className="h-full bg-white" style={{ width: `${Math.round(v.trustScore || 0)}%` }} />
+                                                        <div className="absolute inset-x-0 bottom-0 h-[1px] bg-white/10">
+                                                            <div className="h-full bg-brand-orange" style={{ width: `${Math.round(v.trustScore || 0)}%` }} />
                                                         </div>
                                                     </div>
                                                     <div className="space-y-1.5 min-w-0">
-                                                        <p className="font-bold text-sm uppercase tracking-tight truncate">{v.title}</p>
-                                                        <p className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest">Added: {new Date(v.createdAt).toLocaleDateString()}</p>
+                                                        <p className="font-bold text-sm uppercase tracking-tight truncate text-text-main">{v.title}</p>
+                                                        <p className="text-[9px] font-bold text-text-muted uppercase tracking-widest">Added: {new Date(v.createdAt).toLocaleDateString()}</p>
                                                         {(v.status === "uploading" || v.status === "processing") && (
                                                             <div className="flex items-center gap-2 pt-0.5">
-                                                                <div className="w-1 h-1 bg-amber-400 rounded-full animate-pulse" />
-                                                                <span className="text-[9px] font-bold uppercase tracking-widest text-amber-400/70">Running for</span>
+                                                                <div className="w-1 h-1 bg-brand-earth rounded-full animate-pulse" />
+                                                                <span className="text-[9px] font-bold uppercase tracking-widest text-brand-earth/80">Running for</span>
                                                                 <ElapsedTimer createdAt={v.createdAt} />
                                                             </div>
                                                         )}
@@ -559,40 +669,40 @@ const Dashboard = () => {
                                             </td>
                                             <td className="py-8 px-4">
                                                 <div className="flex items-center gap-2">
-                                                    <div className={`w-1 h-1 rounded-full ${v.visibility === 'public' ? 'bg-white' : 'bg-zinc-700'}`} />
-                                                    <span className="text-[10px] font-bold uppercase tracking-widest">{v.visibility}</span>
+                                                    <div className={`w-1 h-1 rounded-full ${v.visibility === 'public' ? 'bg-brand-orange' : 'bg-white/20'}`} />
+                                                    <span className="text-[10px] font-bold uppercase tracking-widest text-text-main">{v.visibility}</span>
                                                 </div>
                                             </td>
                                             <td className="py-8 px-4">
                                                 <div className="space-y-3">
-                                                    <div className="flex items-center gap-6 text-[10px] font-bold uppercase tracking-widest text-zinc-400">
-                                                        <span className="flex items-center gap-2 text-white"><Eye size={12} className="opacity-30" /> {v.views}</span>
-                                                        <span className="flex items-center gap-2 text-white"><Zap size={12} className="opacity-30" /> {Math.round(v.trustScore || 0)}%</span>
+                                                    <div className="flex items-center gap-6 text-[10px] font-bold uppercase tracking-widest text-text-muted">
+                                                        <span className="flex items-center gap-2 text-text-main"><Eye size={12} className="opacity-50" /> {v.views}</span>
+                                                        <span className="flex items-center gap-2 text-text-main"><Zap size={12} className="opacity-50" /> {Math.round(v.trustScore || 0)}%</span>
                                                     </div>
                                                     <div className="h-[2px] w-32 bg-white/5 overflow-hidden">
-                                                        <div className="h-full bg-white/40" style={{ width: `${Math.min(100, (v.views / 1000) * 100)}%` }} />
+                                                        <div className="h-full bg-brand-orange/60" style={{ width: `${Math.min(100, (v.views / 1000) * 100)}%` }} />
                                                     </div>
                                                 </div>
                                             </td>
                                             <td className="py-8 px-4">
                                                 {v.status === "uploading" ? (
                                                     <div className="space-y-1.5">
-                                                        <span className="text-amber-400 text-[9px] font-bold uppercase tracking-[0.2em] flex items-center gap-2"><div className="w-1.5 h-1.5 bg-amber-400 rounded-full animate-pulse" /> Uploading</span>
-                                                        <p className="text-[8px] text-zinc-600 uppercase tracking-widest">~1–30 min total</p>
+                                                        <span className="text-brand-earth text-[9px] font-bold uppercase tracking-[0.2em] flex items-center gap-2"><div className="w-1.5 h-1.5 bg-brand-earth rounded-full animate-pulse" /> Uploading</span>
+                                                        <p className="text-[8px] text-text-muted uppercase tracking-widest">~1–30 min total</p>
                                                     </div>
                                                 ) : v.status === "processing" ? (
                                                     <div className="space-y-1.5">
                                                         <span className="text-blue-400 text-[9px] font-bold uppercase tracking-[0.2em] flex items-center gap-2"><div className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-ping" /> Processing</span>
-                                                        <p className="text-[8px] text-zinc-600 uppercase tracking-widest">Converting + AI scan</p>
+                                                        <p className="text-[8px] text-text-muted uppercase tracking-widest">Converting + AI scan</p>
                                                     </div>
                                                 ) : v.status === "ready" ? (
-                                                    <span className="text-emerald-400 text-[9px] font-bold uppercase tracking-[0.2em] flex items-center gap-2"><div className="w-1.5 h-1.5 bg-emerald-400 rounded-full" /> Ready</span>
+                                                    <span className="text-brand-green text-[9px] font-bold uppercase tracking-[0.2em] flex items-center gap-2"><div className="w-1.5 h-1.5 bg-brand-green rounded-full" /> Ready</span>
                                                 ) : v.status === "failed" ? (
-                                                    <span className="text-red-500 text-[9px] font-bold uppercase tracking-[0.2em] flex items-center gap-2"><div className="w-1.5 h-1.5 bg-red-500 rounded-full" /> Failed</span>
+                                                    <span className="text-brand-red text-[9px] font-bold uppercase tracking-[0.2em] flex items-center gap-2"><div className="w-1.5 h-1.5 bg-brand-red rounded-full" /> Failed</span>
                                                 ) : v.isPublished ? (
-                                                    <span className="text-white text-[9px] font-bold uppercase tracking-[0.2em]">Published</span>
+                                                    <span className="text-text-main text-[9px] font-bold uppercase tracking-[0.2em]">Published</span>
                                                 ) : (
-                                                    <span className="text-zinc-700 text-[9px] font-bold uppercase tracking-[0.2em]">Draft</span>
+                                                    <span className="text-text-muted text-[9px] font-bold uppercase tracking-[0.2em]">Draft</span>
                                                 )}
                                             </td>
                                             <td className="py-8 px-4 text-right">
@@ -607,7 +717,7 @@ const Dashboard = () => {
                                                             isPublished: v.isPublished,
                                                             thumbnail: null
                                                         });
-                                                    }} className="text-zinc-500 hover:text-white transition-colors"><Edit size={14} /></button>
+                                                    }} className="text-text-muted hover:text-text-main transition-colors"><Edit size={14} /></button>
                                                     <button onClick={() => {
                                                         setShowEditVideo(v);
                                                         setConfirmDelete(true);
@@ -619,7 +729,7 @@ const Dashboard = () => {
                                                             isPublished: v.isPublished,
                                                             thumbnail: null
                                                         });
-                                                    }} className="text-zinc-800 hover:text-red-500 transition-colors"><Trash2 size={14} /></button>
+                                                    }} className="text-white/20 hover:text-brand-red transition-colors"><Trash2 size={14} /></button>
                                                 </div>
                                             </td>
                                         </tr>
@@ -627,7 +737,7 @@ const Dashboard = () => {
                                 ) : (
                                     <tr>
                                         <td colSpan="5" className="py-20 text-center">
-                                            <p className="text-[10px] font-bold uppercase tracking-[0.4em] text-zinc-600">
+                                            <p className="text-[10px] font-bold uppercase tracking-[0.4em] text-text-muted">
                                                 {videos.length === 0 ? "No videos uploaded yet" : "No signals found matching your parameters"}
                                             </p>
                                         </td>
@@ -644,44 +754,44 @@ const Dashboard = () => {
                     {showUpload && (
                         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 overflow-y-auto no-scrollbar">
                             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => !saving && setShowUpload(false)} className="fixed inset-0 bg-black/95 backdrop-blur-md" />
-                            <motion.div initial={{ scale: 0.98, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.98, opacity: 0 }} className="relative bg-[#0A0A0A] border border-white/10 rounded-sm w-full max-w-5xl p-10 sm:p-16 shadow-2xl space-y-12">
+                            <motion.div initial={{ scale: 0.98, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.98, opacity: 0 }} className="relative bg-bg border border-border-main rounded-sm w-full max-w-5xl p-10 sm:p-16 shadow-2xl space-y-12">
                                 <div className="flex justify-between items-start">
                                     <div className="space-y-2">
                                         <h2 className="text-4xl font-black uppercase tracking-tighter leading-none">Upload Video</h2>
-                                        <p className="text-[10px] font-bold uppercase tracking-[0.4em] text-zinc-500">Share a new video with your audience</p>
+                                        <p className="text-[10px] font-bold uppercase tracking-[0.4em] text-text-muted">Share a new video with your audience</p>
                                     </div>
-                                    <button onClick={() => !saving && setShowUpload(false)} className="text-zinc-500 hover:text-white transition-all"><X size={24} /></button>
+                                    <button onClick={() => !saving && setShowUpload(false)} className="text-text-muted hover:text-text-main transition-all"><X size={24} /></button>
                                 </div>
 
                                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
                                     <div className="space-y-10">
                                         <div className="space-y-3">
-                                            <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">Video File</label>
+                                            <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-text-muted">Video File</label>
                                             <div
                                                 onClick={() => uploadFileRef.current.click()}
                                                 onDragOver={e => handleDrag(e, 'video')}
                                                 onDragLeave={e => handleDrag(e, null)}
                                                 onDrop={e => handleDrop(e, 'video', f => setVideoForm({ ...videoForm, video: f }))}
                                                 className={`aspect-video border border-dashed flex flex-col items-center justify-center cursor-pointer transition-all p-12 text-center relative
-                                                    ${videoForm.video ? 'border-white bg-white/5' : dragging === 'video' ? 'border-white bg-white/10' : 'border-white/10 hover:border-white/30 bg-white/[0.01]'}
+                                                    ${videoForm.video ? 'border-brand-orange bg-brand-orange/5' : dragging === 'video' ? 'border-brand-orange bg-brand-orange/10' : 'border-border-main hover:border-white/30 bg-white/[0.01]'}
                                                 `}
                                             >
-                                                {videoForm.video ? <Play size={40} className="text-white mb-4" /> : <UploadCloud size={40} className="opacity-20 mb-4" />}
-                                                <p className="text-[10px] font-bold uppercase tracking-widest text-white">{videoForm.video ? videoForm.video.name : "Select Video"}</p>
+                                                {videoForm.video ? <Play size={40} className="text-brand-orange mb-4" /> : <UploadCloud size={40} className="opacity-30 mb-4" />}
+                                                <p className="text-[10px] font-bold uppercase tracking-widest text-text-main">{videoForm.video ? videoForm.video.name : "Select Video"}</p>
                                                 <input type="file" hidden ref={uploadFileRef} accept="video/*" onChange={e => setVideoForm({ ...videoForm, video: e.target.files[0] })} />
                                             </div>
                                         </div>
 
                                         <div className="space-y-3">
-                                            <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">Thumbnail</label>
+                                            <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-text-muted">Thumbnail</label>
                                             <div
                                                 onClick={() => uploadThumbRef.current.click()}
-                                                className="aspect-video border border-dashed border-white/10 hover:border-white/30 bg-white/[0.01] flex flex-col items-center justify-center cursor-pointer transition-all overflow-hidden"
+                                                className="aspect-video border border-dashed border-border-main hover:border-white/30 bg-white/[0.01] flex flex-col items-center justify-center cursor-pointer transition-all overflow-hidden"
                                             >
                                                 {thumbnailPreview ? (
-                                                    <img src={thumbnailPreview} className="w-full h-full object-cover opacity-80" />
+                                                    <img src={thumbnailPreview} className="w-full h-full object-cover opacity-90" />
                                                 ) : (
-                                                    <ImageIcon size={32} className="opacity-10" />
+                                                    <ImageIcon size={32} className="opacity-20" />
                                                 )}
                                                 <input type="file" hidden ref={uploadThumbRef} accept="image/*" onChange={e => {
                                                     const file = e.target.files[0];
@@ -695,36 +805,36 @@ const Dashboard = () => {
                                         <div className="space-y-8">
                                             <PrecisionInput label="Video Title" placeholder="Enter title" value={videoForm.title} onChange={e => setVideoForm({ ...videoForm, title: e.target.value })} />
                                             <div className="space-y-3">
-                                                <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">Description</label>
+                                                <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-text-muted">Description</label>
                                                 <textarea
                                                     value={videoForm.description}
                                                     onChange={e => setVideoForm({ ...videoForm, description: e.target.value })}
                                                     placeholder="Enter description..."
-                                                    className="w-full h-40 bg-white/[0.02] border border-white/10 p-6 text-sm font-medium text-white outline-none focus:border-white transition-all resize-none"
+                                                    className="w-full h-40 bg-white/[0.02] border border-border-main p-6 text-sm font-medium text-text-main outline-none focus:border-brand-orange transition-all resize-none"
                                                 />
                                             </div>
 
                                             <div
                                                 onClick={() => setVideoForm({ ...videoForm, isAiGenerated: !videoForm.isAiGenerated })}
-                                                className={`p-5 border cursor-pointer transition-all flex items-center justify-between gap-4 ${videoForm.isAiGenerated ? 'bg-white/10 border-white/30' : 'bg-white/[0.02] border-white/10 hover:border-white/20'}`}
+                                                className={`p-5 border cursor-pointer transition-all flex items-center justify-between gap-4 ${videoForm.isAiGenerated ? 'bg-brand-orange/10 border-brand-orange/30' : 'bg-white/[0.02] border-border-main hover:border-white/20'}`}
                                             >
                                                 <div className="flex items-center gap-3">
-                                                    <Sparkles size={16} className={videoForm.isAiGenerated ? "text-white" : "text-zinc-500"} />
+                                                    <Sparkles size={16} className={videoForm.isAiGenerated ? "text-brand-orange" : "text-text-muted"} />
                                                     <div>
-                                                        <p className="text-[10px] font-bold uppercase tracking-widest">AI Disclosure</p>
-                                                        <p className="text-[9px] text-zinc-500 mt-0.5">Check if this video involves AI-generated content</p>
+                                                        <p className="text-[10px] font-bold uppercase tracking-widest text-text-main">AI Disclosure</p>
+                                                        <p className="text-[9px] text-text-muted mt-0.5">Check if this video involves AI-generated content</p>
                                                     </div>
                                                 </div>
-                                                <div className={`w-10 h-5 rounded-full p-1 transition-colors ${videoForm.isAiGenerated ? 'bg-white' : 'bg-white/10'}`}>
-                                                    <motion.div animate={{ x: videoForm.isAiGenerated ? 20 : 0 }} className={`w-3 h-3 rounded-full ${videoForm.isAiGenerated ? 'bg-black' : 'bg-white'}`} />
+                                                <div className={`w-10 h-5 rounded-full p-1 transition-colors ${videoForm.isAiGenerated ? 'bg-brand-orange' : 'bg-white/10'}`}>
+                                                    <motion.div animate={{ x: videoForm.isAiGenerated ? 20 : 0 }} className="w-3 h-3 rounded-full bg-white" />
                                                 </div>
                                             </div>
                                         </div>
 
-                                        <div className="pt-10 border-t border-white/5">
+                                        <div className="pt-10 border-t border-border-main">
                                             {uploadProgress > 0 ? (
                                                 <div className="space-y-4">
-                                                    <div className="flex justify-between text-[10px] font-bold uppercase tracking-[0.3em]">
+                                                    <div className="flex justify-between text-[10px] font-bold uppercase tracking-[0.3em] text-text-main">
                                                         <span>Uploading Video...</span>
                                                         <span>{uploadProgress}%</span>
                                                     </div>
@@ -732,7 +842,7 @@ const Dashboard = () => {
                                                         <motion.div
                                                             initial={{ width: 0 }}
                                                             animate={{ width: `${uploadProgress}%` }}
-                                                            className="h-full bg-white"
+                                                            className="h-full bg-brand-orange"
                                                         />
                                                     </div>
                                                 </div>
@@ -750,34 +860,34 @@ const Dashboard = () => {
                     {showEditVideo && (
                         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6">
                             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => { setShowEditVideo(null); setConfirmDelete(false); }} className="fixed inset-0 bg-black/95 backdrop-blur-md" />
-                            <motion.div initial={{ scale: 0.98, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.98, opacity: 0 }} className="relative bg-[#0A0A0A] border border-white/10 rounded-sm w-full max-w-3xl p-12 shadow-2xl space-y-10">
+                            <motion.div initial={{ scale: 0.98, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.98, opacity: 0 }} className="relative bg-bg border border-border-main rounded-sm w-full max-w-3xl p-12 shadow-2xl space-y-10">
                                 <div className="flex justify-between items-start">
                                     <div className="space-y-1">
                                         <h2 className="text-3xl font-black uppercase tracking-tighter">Edit Video</h2>
-                                        <p className="text-[9px] font-bold uppercase tracking-[0.4em] text-zinc-500">Update video details</p>
+                                        <p className="text-[9px] font-bold uppercase tracking-[0.4em] text-text-muted">Update video details</p>
                                     </div>
-                                    <button onClick={() => { setShowEditVideo(null); setConfirmDelete(false); }} className="text-zinc-500 hover:text-white transition-all"><X size={20} /></button>
+                                    <button onClick={() => { setShowEditVideo(null); setConfirmDelete(false); }} className="text-text-muted hover:text-text-main transition-all"><X size={20} /></button>
                                 </div>
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
                                     <div className="space-y-6">
                                         <PrecisionInput label="Title" value={editVideoForm.title} onChange={e => setEditVideoForm({ ...editVideoForm, title: e.target.value })} />
                                         <div className="space-y-2">
-                                            <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500 ml-1">Description</label>
+                                            <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-text-muted ml-1">Description</label>
                                             <textarea
                                                 value={editVideoForm.description}
                                                 onChange={e => setEditVideoForm({ ...editVideoForm, description: e.target.value })}
-                                                className="w-full h-32 bg-white/[0.02] border border-white/10 p-5 text-sm font-medium text-white outline-none focus:border-white transition-all resize-none"
+                                                className="w-full h-32 bg-white/[0.02] border border-border-main p-5 text-sm font-medium text-text-main outline-none focus:border-brand-orange transition-all resize-none"
                                             />
                                         </div>
                                     </div>
                                     <div className="space-y-6 text-center">
-                                        <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500 block text-left ml-1">Thumbnail</label>
+                                        <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-text-muted block text-left ml-1">Thumbnail</label>
                                         <div
                                             onClick={() => editThumbRef.current.click()}
-                                            className="aspect-video bg-zinc-900 border border-white/5 overflow-hidden cursor-pointer relative group"
+                                            className="aspect-video bg-surface-low border border-border-main overflow-hidden cursor-pointer relative group"
                                         >
-                                            <img src={editThumbnailPreview} className="w-full h-full object-cover opacity-60 group-hover:scale-105 transition-all duration-700" />
+                                            <img src={editThumbnailPreview} className="w-full h-full object-cover opacity-70 group-hover:scale-105 transition-all duration-700" />
                                             <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 bg-black/60 transition-all">
                                                 <ImageIcon size={20} />
                                             </div>
@@ -788,13 +898,13 @@ const Dashboard = () => {
                                         </div>
                                         <div className="grid grid-cols-2 gap-4">
                                             <div className="space-y-3 text-left">
-                                                <label className="text-[8px] font-bold uppercase tracking-widest text-zinc-600 ml-1">Visibility</label>
-                                                <div className="flex bg-white/5 p-1 border border-white/5">
+                                                <label className="text-[8px] font-bold uppercase tracking-widest text-text-muted ml-1">Visibility</label>
+                                                <div className="flex bg-white/5 p-1 border border-border-main">
                                                     {['public', 'private'].map(v => (
                                                         <button
                                                             key={v}
                                                             onClick={() => setEditVideoForm({ ...editVideoForm, visibility: v })}
-                                                            className={`flex-1 py-2 text-[8px] font-bold uppercase tracking-tighter ${editVideoForm.visibility === v ? 'bg-white text-black' : 'text-zinc-500'}`}
+                                                            className={`flex-1 py-2 text-[8px] font-bold uppercase tracking-tighter ${editVideoForm.visibility === v ? 'bg-brand-orange text-white' : 'text-text-muted'}`}
                                                         >
                                                             {v}
                                                         </button>
@@ -802,13 +912,13 @@ const Dashboard = () => {
                                                 </div>
                                             </div>
                                             <div className="space-y-3 text-left">
-                                                <label className="text-[8px] font-bold uppercase tracking-widest text-zinc-600 ml-1">State</label>
-                                                <div className="flex bg-white/5 p-1 border border-white/5">
+                                                <label className="text-[8px] font-bold uppercase tracking-widest text-text-muted ml-1">State</label>
+                                                <div className="flex bg-white/5 p-1 border border-border-main">
                                                     {[{ l: 'Live', v: true }, { l: 'Draft', v: false }].map(s => (
                                                         <button
                                                             key={s.l}
                                                             onClick={() => setEditVideoForm({ ...editVideoForm, isPublished: s.v })}
-                                                            className={`flex-1 py-2 text-[8px] font-bold uppercase tracking-tighter ${editVideoForm.isPublished === s.v ? 'bg-white text-black' : 'text-zinc-500'}`}
+                                                            className={`flex-1 py-2 text-[8px] font-bold uppercase tracking-tighter ${editVideoForm.isPublished === s.v ? 'bg-brand-orange text-white' : 'text-text-muted'}`}
                                                         >
                                                             {s.l}
                                                         </button>
@@ -822,13 +932,13 @@ const Dashboard = () => {
                                 <div className="flex flex-col gap-4 pt-4">
                                     <ForensicButton disabled={saving} className="w-full py-5" onClick={handleEditVideo}>Save Changes</ForensicButton>
                                     {!confirmDelete ? (
-                                        <button onClick={() => setConfirmDelete(true)} className="text-[9px] font-bold uppercase tracking-[0.3em] text-red-900 hover:text-red-500 transition-colors py-4">Delete Video</button>
+                                        <button onClick={() => setConfirmDelete(true)} className="text-[9px] font-bold uppercase tracking-[0.3em] text-brand-red/60 hover:text-brand-red transition-colors py-4">Delete Video</button>
                                     ) : (
-                                        <div className="flex items-center justify-between p-6 bg-red-500/5 border border-red-500/10">
-                                            <span className="text-[9px] font-bold uppercase tracking-widest text-red-500">Confirm permanent deletion?</span>
+                                        <div className="flex items-center justify-between p-6 bg-brand-red/5 border border-brand-red/10">
+                                            <span className="text-[9px] font-bold uppercase tracking-widest text-brand-red">Confirm permanent deletion?</span>
                                             <div className="flex gap-4">
-                                                <button onClick={() => setConfirmDelete(false)} className="text-[9px] font-bold uppercase text-zinc-500 underline">Cancel</button>
-                                                <button disabled={saving} onClick={() => handleDeleteVideo(showEditVideo._id)} className="text-[9px] font-bold uppercase text-red-500 border border-red-500/20 px-4 py-2 hover:bg-red-500 hover:text-white transition-all disabled:opacity-40">Delete</button>
+                                                <button onClick={() => setConfirmDelete(false)} className="text-[9px] font-bold uppercase text-text-muted underline">Cancel</button>
+                                                <button disabled={saving} onClick={() => handleDeleteVideo(showEditVideo._id)} className="text-[9px] font-bold uppercase text-brand-red border border-brand-red/20 px-4 py-2 hover:bg-brand-red hover:text-white transition-all disabled:opacity-40">Delete</button>
                                             </div>
                                         </div>
                                     )}
@@ -841,19 +951,19 @@ const Dashboard = () => {
                     {showEdit && (
                         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6">
                             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => !saving && setShowEdit(false)} className="fixed inset-0 bg-black/95 backdrop-blur-md" />
-                            <motion.div initial={{ scale: 0.98, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.98, opacity: 0 }} className="relative bg-[#0A0A0A] border border-white/10 rounded-sm w-full max-w-2xl p-12 shadow-2xl space-y-12">
+                            <motion.div initial={{ scale: 0.98, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.98, opacity: 0 }} className="relative bg-bg border border-border-main rounded-sm w-full max-w-2xl p-12 shadow-2xl space-y-12">
                                 <div className="flex justify-between items-start">
                                     <div className="space-y-1">
                                         <h2 className="text-3xl font-black uppercase tracking-tighter leading-none">Channel Settings</h2>
-                                        <p className="text-[9px] font-bold uppercase tracking-[0.4em] text-zinc-500">Update your channel profile</p>
+                                        <p className="text-[9px] font-bold uppercase tracking-[0.4em] text-text-muted">Update your channel profile</p>
                                     </div>
-                                    <button onClick={() => !saving && setShowEdit(false)} className="text-zinc-500 hover:text-white transition-all"><X size={20} /></button>
+                                    <button onClick={() => !saving && setShowEdit(false)} className="text-text-muted hover:text-text-main transition-all"><X size={20} /></button>
                                 </div>
 
                                 <div className="space-y-10">
-                                    <div className="relative aspect-[4/1] bg-white/[0.02] border border-white/5 overflow-hidden group">
+                                    <div className="relative aspect-[4/1] bg-white/[0.02] border border-border-main overflow-hidden group">
                                         {bannerPreview || channel?.banner ? (
-                                            <img src={bannerPreview || channel?.banner} className="w-full h-full object-cover grayscale opacity-40 group-hover:opacity-60 transition-all duration-1000" />
+                                            <img src={bannerPreview || channel?.banner} className="w-full h-full object-cover grayscale opacity-50 group-hover:opacity-70 transition-all duration-1000" />
                                         ) : null}
                                         <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all">
                                             <ForensicButton variant="ghost" onClick={() => editBannerRef.current.click()}>Update Banner</ForensicButton>
@@ -862,10 +972,10 @@ const Dashboard = () => {
                                             const f = e.target.files[0];
                                             if (f) { setChannelForm({ ...channelForm, banner: f }); setBannerPreview(URL.createObjectURL(f)); }
                                         }} />
-                                        <div className="absolute -bottom-6 left-10 w-24 h-24 bg-[#0A0A0A] border border-white/10 flex items-center justify-center overflow-hidden">
+                                        <div className="absolute -bottom-6 left-10 w-24 h-24 bg-bg border border-border-main flex items-center justify-center overflow-hidden">
                                             {avatarPreview || channel?.avatar ? (
                                                 <img src={avatarPreview || channel?.avatar} className="w-full h-full object-cover" />
-                                            ) : <Users size={32} className="opacity-20" />}
+                                            ) : <Users size={32} className="opacity-30" />}
                                             <div onClick={() => editAvatarRef.current.click()} className="absolute inset-0 bg-black/60 opacity-0 hover:opacity-100 flex items-center justify-center cursor-pointer transition-all">
                                                 <ImageIcon size={20} />
                                             </div>
@@ -879,11 +989,11 @@ const Dashboard = () => {
                                     <div className="space-y-8 pt-4">
                                         <PrecisionInput label="Channel Name" value={channelForm.name} onChange={e => setChannelForm({ ...channelForm, name: e.target.value })} />
                                         <div className="space-y-2">
-                                            <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500 ml-1">Description</label>
+                                            <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-text-muted ml-1">Description</label>
                                             <textarea
                                                 value={channelForm.description}
                                                 onChange={e => setChannelForm({ ...channelForm, description: e.target.value })}
-                                                className="w-full h-32 bg-white/[0.02] border border-white/10 p-6 text-sm font-medium text-white outline-none focus:border-white transition-all resize-none"
+                                                className="w-full h-32 bg-white/[0.02] border border-border-main p-6 text-sm font-medium text-text-main outline-none focus:border-brand-orange transition-all resize-none"
                                             />
                                         </div>
                                     </div>

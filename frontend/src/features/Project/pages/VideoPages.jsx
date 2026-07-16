@@ -1,8 +1,7 @@
-// VideoPages.jsx
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { useEffect, useState, useRef, useMemo } from "react";
 import { useSelector } from "react-redux";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { AlertTriangle, Eye, Clock, ThumbsUp, ThumbsDown } from "lucide-react";
 import VideoCard from "../components/video/VideoCard";
 import CustomPlayer from "../components/CustomVideoPlayer";
@@ -101,8 +100,6 @@ const VideoPages = () => {
     };
   }, [id]);
 
-
-  // 🔌 REALTIME SOCKET LISTENERS — likes, views, comments, comment reactions
   useEffect(() => {
     if (!id) return;
     const socket = socketRef.current;
@@ -143,8 +140,6 @@ const VideoPages = () => {
     };
   }, [id]);
 
-
-  // 🔄 REAL-TIME STATUS POLLING (upload processing)
   useEffect(() => {
     if (!id || video?.status === "ready" || video?.status === "failed") return;
 
@@ -163,8 +158,6 @@ const VideoPages = () => {
     return () => clearInterval(poll);
   }, [id, video?.status]);
 
-
-  // 🔔 SUBSCRIPTION DATA
   useEffect(() => {
     if (!video?.channel?._id) return;
 
@@ -251,12 +244,12 @@ const VideoPages = () => {
     return (
       <div className="w-full px-4 py-4 sm:px-6 lg:px-10 flex flex-col lg:flex-row gap-6 lg:gap-10 animate-pulse">
         <div className="flex-1 space-y-6">
-          <div className="aspect-video bg-stitch-grey rounded-3xl" />
-          <div className="h-6 bg-stitch-grey rounded-lg w-2/3" />
-          <div className="h-20 bg-stitch-grey rounded-2xl" />
+          <div className="aspect-video bg-surface-low rounded-3xl" />
+          <div className="h-6 bg-surface-low rounded-lg w-2/3" />
+          <div className="h-20 bg-surface-low rounded-2xl" />
         </div>
         <div className="w-full lg:w-[320px] space-y-4">
-          {Array(4).fill(0).map((_, i) => <div key={i} className="aspect-video bg-stitch-grey rounded-2xl" />)}
+          {Array(4).fill(0).map((_, i) => <div key={i} className="aspect-video bg-surface-low rounded-2xl" />)}
         </div>
       </div>
     );
@@ -269,7 +262,7 @@ const VideoPages = () => {
       <div className="flex-1 flex flex-col gap-6 sm:gap-8">
 
         {/* PLAYER STAGE */}
-        <div className="w-full relative rounded-2xl sm:rounded-3xl overflow-hidden bg-stitch-grey shadow-sm">
+        <div className="w-full relative rounded-2xl sm:rounded-3xl overflow-hidden bg-surface-low shadow-sm border border-border-main">
           {video.status === "ready" && video.videoUrl ? (
             <CustomPlayer
               autoPlay
@@ -282,25 +275,25 @@ const VideoPages = () => {
             />
 
           ) : video.status === "failed" ? (
-            <div className="aspect-video flex flex-col items-center justify-center bg-red-50/50 p-10 text-center gap-4">
-              <AlertTriangle size={48} className="text-red-500 opacity-20" />
+            <div className="aspect-video flex flex-col items-center justify-center bg-brand-red/5 p-10 text-center gap-4">
+              <AlertTriangle size={48} className="text-brand-red opacity-40" />
               <div className="space-y-2">
-                <p className="text-sm font-black text-red-900 uppercase tracking-widest">Broadcast Signal Lost</p>
-                <p className="text-[10px] font-bold text-red-700/60 uppercase">The data integrity check failed. Please re-upload this signal.</p>
+                <p className="text-sm font-black text-brand-red uppercase tracking-widest">Broadcast Signal Lost</p>
+                <p className="text-[10px] font-bold text-brand-red/60 uppercase">The data integrity check failed. Please re-upload this signal.</p>
               </div>
-              <button onClick={() => window.location.reload()} className="mt-4 px-8 py-3 bg-red-600 text-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-red-700 transition-all shadow-xl shadow-red-200">Retry Injection</button>
+              <button onClick={() => window.location.reload()} className="mt-4 px-8 py-3 bg-brand-red text-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-brand-red/80 transition-all shadow-xl shadow-brand-red/20">Retry Injection</button>
             </div>
           ) : (
             <div className="aspect-video flex flex-col items-center justify-center text-text-muted gap-6 p-10 text-center">
               <div className="relative">
-                <div className="w-12 h-12 border-2 border-black/5 rounded-full" />
-                <div className="absolute inset-0 border-2 border-t-black border-transparent rounded-full animate-spin" />
+                <div className="w-12 h-12 border-2 border-white/10 rounded-full" />
+                <div className="absolute inset-0 border-2 border-t-brand-orange border-transparent rounded-full animate-spin" />
               </div>
               <div className="space-y-2">
-                <p className="font-black text-[10px] sm:text-xs uppercase tracking-[0.3em] text-stitch-black">
+                <p className="font-black text-[10px] sm:text-xs uppercase tracking-[0.3em] text-text-main">
                   {video.status === "uploading" ? "Synchronizing Data..." : "Optimizing Visual Feed..."}
                 </p>
-                <p className="text-[9px] font-bold uppercase tracking-widest opacity-40">
+                <p className="text-[9px] font-bold uppercase tracking-widest opacity-50">
                   {video.status === "uploading" ? "Establishing connection to neural network" : "Performing high-fidelity AI upscaling and verification"}
                 </p>
               </div>
@@ -311,16 +304,16 @@ const VideoPages = () => {
         {/* INFO BAR */}
         <div className="space-y-4">
           <div className="flex flex-col gap-3">
-            <h1 className="text-xl sm:text-2xl lg:text-3xl font-display font-black text-stitch-black tracking-tight leading-tight">
+            <h1 className="text-xl sm:text-2xl lg:text-3xl font-display font-black text-text-main tracking-tight leading-tight">
               {video.title}
             </h1>
             <div className="flex items-center gap-3 sm:gap-4 text-[10px] sm:text-xs font-bold text-text-muted uppercase tracking-tighter">
               <span className="flex items-center gap-1.5"><Eye size={14} /> {video.views?.toLocaleString()} views</span>
-              <span className="w-0.5 h-0.5 rounded-full bg-text-muted opacity-30" />
+              <span className="w-0.5 h-0.5 rounded-full bg-white/20" />
               <span className="flex items-center gap-1.5"><Clock size={14} /> {formatTimeAgo(video.createdAt)}</span>
               {video.isAiGenerated && (
                 <>
-                  <span className="w-0.5 h-0.5 rounded-full bg-text-muted opacity-30" />
+                  <span className="w-0.5 h-0.5 rounded-full bg-white/20" />
                   <span className="px-2 py-0.5 rounded-full bg-brand-earth/10 text-brand-earth normal-case tracking-normal font-bold">
                     Creator-disclosed AI content
                   </span>
@@ -333,13 +326,13 @@ const VideoPages = () => {
             <div className="flex items-center justify-between sm:justify-start gap-4">
               <div className="flex items-center gap-4">
                 <Link to={`/channel/${video.channel?.handle}`}>
-                  <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-stitch-grey border border-border-main overflow-hidden shadow-sm flex items-center justify-center font-black">
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-surface-low border border-border-main overflow-hidden shadow-sm flex items-center justify-center font-black text-text-main">
                     {video.channel?.avatar ? <img src={video.channel.avatar} className="w-full h-full object-cover" /> : video.channel?.name?.charAt(0)}
                   </div>
                 </Link>
                 <div>
                   <Link to={`/channel/${video.channel?.handle}`}>
-                    <h3 className="text-xs sm:text-sm font-display font-black text-stitch-black">{video.channel?.name}</h3>
+                    <h3 className="text-xs sm:text-sm font-display font-black text-text-main">{video.channel?.name}</h3>
                   </Link>
                   {subscriberCount !== null && (
                     <p className="text-[10px] font-bold text-text-muted">{subscriberCount.toLocaleString()} subscribers</p>
@@ -352,7 +345,7 @@ const VideoPages = () => {
             </div>
 
             <div className="flex items-center gap-3">
-              <div className="flex flex-1 items-center bg-white/50 backdrop-blur-md rounded-2xl border border-black/10 p-1 shadow-sm overflow-hidden group/resonance">
+              <div className="flex flex-1 items-center bg-surface-low backdrop-blur-md rounded-2xl border border-border-main p-1 shadow-sm overflow-hidden">
                 <motion.button
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
@@ -360,8 +353,8 @@ const VideoPages = () => {
                   className={`
                     flex-1 sm:flex-none flex items-center justify-center gap-2.5 px-4 sm:px-5 py-2.5 rounded-xl text-[9px] sm:text-[10px] font-black uppercase tracking-widest transition-all
                     ${liked
-                      ? 'bg-brand-orange text-white shadow-[0_0_20px_rgba(255,77,0,0.3)]'
-                      : 'hover:bg-black/5 text-main'
+                      ? 'bg-brand-orange text-white shadow-[0_0_20px_rgba(232,48,42,0.35)]'
+                      : 'hover:bg-white/5 text-text-main'
                     }
                   `}
                 >
@@ -369,7 +362,7 @@ const VideoPages = () => {
                   <span>{video.likesCount?.toLocaleString() || 0}</span>
                 </motion.button>
 
-                <div className="w-px h-6 bg-black/10 mx-1" />
+                <div className="w-px h-6 bg-white/10 mx-1" />
 
                 <motion.button
                   whileHover={{ scale: 1.02 }}
@@ -378,8 +371,8 @@ const VideoPages = () => {
                   className={`
                     flex items-center justify-center w-12 h-10 rounded-xl transition-all
                     ${disliked
-                      ? 'bg-brand-red text-white shadow-[0_0_20px_rgba(213,0,0,0.3)]'
-                      : 'hover:bg-black/5 text-main'
+                      ? 'bg-brand-red text-white shadow-[0_0_20px_rgba(255,59,48,0.35)]'
+                      : 'hover:bg-white/5 text-text-main'
                     }
                   `}
                 >
@@ -394,14 +387,14 @@ const VideoPages = () => {
         <AIInsightsPanel video={video} />
 
         {/* DESCRIPTION DOCKS */}
-        <div className="p-5 sm:p-6 bg-stitch-grey rounded-2xl sm:rounded-3xl border border-border-main">
-          <p className={`text-sm leading-relaxed text-stitch-grey-dark font-medium antialiased whitespace-pre-line ${descExpanded ? '' : 'line-clamp-3'}`}>
+        <div className="p-5 sm:p-6 bg-surface-low rounded-2xl sm:rounded-3xl border border-border-main">
+          <p className={`text-sm leading-relaxed text-text-muted font-medium whitespace-pre-line ${descExpanded ? '' : 'line-clamp-3'}`}>
             {video.description || "The Curator has provided no editorial notes for this signal."}
           </p>
           {video.description && video.description.length > 150 && (
             <button
               onClick={() => setDescExpanded(!descExpanded)}
-              className="mt-4 text-[10px] font-black uppercase tracking-widest text-stitch-earth hover:text-stitch-accent transition-colors"
+              className="mt-4 text-[10px] font-black uppercase tracking-widest text-brand-orange hover:text-white transition-colors"
             >
               {descExpanded ? "Show Less" : "Expand Description"}
             </button>
@@ -410,11 +403,11 @@ const VideoPages = () => {
 
         {/* COMMENTS ENGINE */}
         <div className="space-y-6 sm:space-y-8">
-          <h2 className="text-base sm:text-lg font-display font-black text-stitch-black tracking-tight">
+          <h2 className="text-base sm:text-lg font-display font-black text-text-main tracking-tight">
             {comments.reduce((sum, c) => sum + 1 + (c.replies?.length || 0), 0)} Discussion Signals
           </h2>
           <div className="flex gap-3 sm:gap-4">
-            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-2xl bg-stitch-grey border border-border-main flex items-center justify-center font-black text-[10px] sm:text-xs overflow-hidden">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-2xl bg-surface-low border border-border-main flex items-center justify-center font-black text-[10px] sm:text-xs text-text-main overflow-hidden">
               {user?.avatar ? <img src={user.avatar} className="w-full h-full object-cover" /> : "U"}
             </div>
             <div className="flex-1 space-y-3">
@@ -422,12 +415,12 @@ const VideoPages = () => {
                 value={newComment}
                 onChange={(e) => setNewComment(e.target.value)}
                 placeholder="Participate in the dialogue..."
-                className="w-full bg-transparent border-b border-border-main outline-none py-2 text-sm font-medium placeholder:text-text-muted focus:border-stitch-black transition-colors resize-none"
+                className="w-full bg-transparent border-b border-border-main outline-none py-2 text-sm font-medium text-text-main placeholder:text-text-muted focus:border-brand-orange transition-colors resize-none"
                 rows={1}
               />
               <div className="flex justify-end gap-3">
-                <button onClick={() => setNewComment("")} className="px-4 py-2 text-[10px] font-black uppercase tracking-widest text-text-muted hover:text-stitch-black">Dismiss</button>
-                <button onClick={handleComment} className="px-5 py-2 bg-stitch-black text-white text-[10px] font-black uppercase tracking-widest rounded-xl shadow-lg hover:bg-stitch-accent transition-all">Transmit</button>
+                <button onClick={() => setNewComment("")} className="px-4 py-2 text-[10px] font-black uppercase tracking-widest text-text-muted hover:text-text-main">Dismiss</button>
+                <button onClick={handleComment} className="px-5 py-2 bg-brand-orange text-white text-[10px] font-black uppercase tracking-widest rounded-xl shadow-lg hover:bg-white hover:text-black transition-all">Transmit</button>
               </div>
             </div>
           </div>
