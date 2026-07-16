@@ -5,7 +5,8 @@ import {
     getSubscribersCount,
     getUserSubscriptions,
     getChannelSubscribers,
-    isSubscribed
+    isSubscribed,
+    getSubscriptionsFeed
 } from "../controllers/subscriber.controller.js";
 
 const router = Router();
@@ -29,5 +30,9 @@ router.get("/:channelId/list", getChannelSubscribers);
 // /api/subscription/:channelId/is-subscribed
 // GET
 router.get("/:channelId/is-subscribed", authMiddleware, isSubscribed);
+
+// ✅ NEW: SUBSCRIPTIONS FEED
+// GET /api/subscription/feed?page=1
+router.get("/feed", authMiddleware, getSubscriptionsFeed);
 
 export default router;

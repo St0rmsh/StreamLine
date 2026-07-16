@@ -1,7 +1,7 @@
 import { NavLink, useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { Home, LogOut, X, LayoutDashboard, Compass, PlayCircle, History, UploadCloud } from "lucide-react";
-import { useAuth } from "../../../Auth/hooks/useAuth.js";
+import { useAuth } from "../../../Auth/hook/useAuth";
 import { motion, AnimatePresence } from "framer-motion";
 
 const Sidebar = ({ open, setOpen, collapsed }) => {

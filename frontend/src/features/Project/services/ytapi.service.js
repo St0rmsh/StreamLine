@@ -81,6 +81,24 @@ export const getStudioStats = () => {
 };
 
 
+
+export const getSubscriptionsFeed = () => {
+    return api.get("/api/subscription/feed");
+};
+
+export const getWatchHistory = () => {
+    return api.get("/api/video/history");
+};
+
+export const clearWatchHistory = () => {
+    return api.delete("/api/video/history");
+};
+
+export const removeWatchHistoryEntry = (entryId) => {
+    return api.delete(`/api/video/history/${entryId}`);
+};
+
+
 // =======================
 // 💬 COMMENT APIs
 // =======================

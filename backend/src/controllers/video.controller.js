@@ -277,18 +277,23 @@ export const getMyVideos = async (req, res) => {
 export const searchVideos = async (req, res) => {
   try {
     const q = req.query.q;
-    if (!q) return res.json({ success: true, videos: [] });
+    if (!q || !q.trim()) return res.json({ success: true, videos: [] });
 
     const userId = req.user?._id;
+    const searchRegex = new RegExp(q.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i");
+
     const query = {
       status: { $in: ["ready", null] },
-      $text: { $search: q }
+      $or: [
+        { title: searchRegex },
+        { description: searchRegex },
+        { tags: searchRegex }
+      ]
     };
 
     if (userId) {
-      query.$or = [
-        { visibility: "public" },
-        { uploader: userId }
+      query.$and = [
+        { $or: [{ visibility: "public" }, { uploader: userId }] }
       ];
     } else {
       query.visibility = "public";
@@ -312,6 +317,7 @@ export const searchVideos = async (req, res) => {
     return res.status(500).json({ message: "Internal Server Error" });
   }
 };
+
 
 export const deleteVideo = async (req, res) => {
   try {

@@ -10,7 +10,7 @@ import VideoPages from "../features/Project/pages/VideoPages";
 import Dashboard from "../features/Project/pages/Dashboard";
 import UploadPage from "../features/Project/pages/UploadPage";
 import ChannelPage from "../features/Project/pages/ChannelPage";
-import SearchPage from "../features/Project/pages/SearchPage";
+import SearchPage from "../features/Project/pages/Search";
 import ExplorePage from "../features/Project/pages/ExplorePage";
 import SubscriptionsPage from "../features/Project/pages/SubscriptionsPage";
 import HistoryPage from "../features/Project/pages/HistoryPage";

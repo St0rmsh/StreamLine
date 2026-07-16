@@ -1,6 +1,9 @@
 import subscriberModel from "../models/subscribe.model.js";
 import Channel from "../models/channel.model.js";
 import { getIO } from "../socket/connect.socket.js";
+import videoModel from "../models/video.model.js";
+import { getSignedUrl } from "../services/storage.service.js";
+
 
 // ✅ TOGGLE SUBSCRIBE
 export const toggleSubscribe = async (req, res) => {
@@ -140,4 +143,86 @@ export const getChannelSubscribers = async (req, res) => {
         console.error("Get channel subscribers error:", err);
         return res.status(500).json({ message: "Internal Server Error" });
     }
+};
+
+
+
+
+
+// // ✅ SUBSCRIPTIONS FEED — recent videos from channels the user follows
+// export const getSubscriptionsFeed = async (req, res) => {
+//   try {
+//     const userId = req.user._id;
+//     const page = parseInt(req.query.page) || 1;
+//     const limit = 20;
+//     const skip = (page - 1) * limit;
+
+//     const subs = await subscriberModel.find({ user: userId }).select("channel");
+//     const channelIds = subs.map((s) => s.channel);
+
+//     if (channelIds.length === 0) {
+//       return res.json({ success: true, videos: [], hasSubscriptions: false });
+//     }
+
+//     const videos = await videoModel
+//       .find({
+//         channel: { $in: channelIds },
+//         status: { $in: ["ready", null] },
+//         visibility: "public"
+//       })
+//       .sort({ createdAt: -1 })
+//       .skip(skip)
+//       .limit(limit)
+//       .populate("channel", "name handle avatar");
+
+//     return res.json({ success: true, videos, hasSubscriptions: true });
+
+//   } catch (err) {
+//     console.error("Get subscriptions feed error:", err);
+//     return res.status(500).json({ message: "Internal Server Error" });
+//   }
+// };
+
+
+
+
+// ✅ SUBSCRIPTIONS FEED — recent videos from channels the user follows
+export const getSubscriptionsFeed = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const page = parseInt(req.query.page) || 1;
+    const limit = 20;
+    const skip = (page - 1) * limit;
+
+    const subs = await subscriberModel.find({ user: userId }).select("channel");
+    const channelIds = subs.map((s) => s.channel);
+
+    if (channelIds.length === 0) {
+      return res.json({ success: true, videos: [], hasSubscriptions: false });
+    }
+
+    const videos = await videoModel
+      .find({
+        channel: { $in: channelIds },
+        status: { $in: ["ready", null] },
+        visibility: "public"
+      })
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .populate("channel", "name handle avatar");
+
+    const signedVideos = videos.map((v) => {
+      const doc = v.toObject();
+      doc.videoUrl = getSignedUrl(doc.videoUrl);
+      doc.thumbnail = getSignedUrl(doc.thumbnail);
+      return doc;
+    });
+
+    return res.json({ success: true, videos: signedVideos, hasSubscriptions: true });
+
+  } catch (err) {
+    console.error("Get subscriptions feed error:", err);
+    return res.status(500).json({ message: "Internal Server Error" });
+  }
 };

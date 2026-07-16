@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useMemo } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import Hls from "hls.js";
 import {
   Play,
@@ -7,11 +7,9 @@ import {
   VolumeX,
   Maximize,
   Settings,
-  ChevronUp,
   ShieldCheck,
   ShieldAlert,
-  AlertTriangle,
-  RotateCcw
+  AlertTriangle
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -28,10 +26,12 @@ const CustomPlayer = ({
   const videoRef = useRef(null);
   const containerRef = useRef(null);
   const progressRef = useRef(null);
+  const volumeRef = useRef(null);
   const lastTrackedTimeRef = useRef(0);
   const retryCountRef = useRef(0);
   const hlsRef = useRef(null);
-
+  const isDraggingProgressRef = useRef(false);
+  const isDraggingVolumeRef = useRef(false);
 
   const [volume, setVolume] = useState(() => {
     const saved = localStorage.getItem("signal_volume");
@@ -45,7 +45,6 @@ const CustomPlayer = ({
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
   const [speed, setSpeed] = useState(1);
-  const [buffer, setBuffer] = useState(0);
   const [showControls, setShowControls] = useState(true);
   const [quality, setQuality] = useState("720p");
   const [showSettings, setShowSettings] = useState(false);
@@ -71,6 +70,8 @@ const CustomPlayer = ({
   useEffect(() => {
     retryCountRef.current = 0;
     setError(false);
+    setDuration(0);
+    setProgress(0);
 
     if (hlsRef.current) {
       hlsRef.current.destroy();
@@ -116,19 +117,19 @@ const CustomPlayer = ({
       });
 
     } else if (hlsUrl && video.canPlayType("application/vnd.apple.mpegurl")) {
-      // Native HLS support (Safari)
+      // Native HLS (Safari) — src is set imperatively here since there's no
+      // hlsUrl attribute path in the plain <video> JSX below.
       video.src = hlsUrl;
       video.load();
       if (autoPlay) video.play().catch(() => setIsMuted(true));
 
-    } else {
-      // Fallback to native MP4
-      video.src = src;
-      video.load();
-      if (autoPlay) {
-        video.play().catch(() => setIsMuted(true));
-      }
     }
+    // 🚫 No `else` branch here doing `video.src = src; video.load()` —
+    // the <video src={src}> attribute in the JSX below already handles the
+    // plain-MP4 case declaratively. Setting it a second time imperatively
+    // right after mount was interrupting the initial load and preventing
+    // `loadedmetadata` from firing reliably, which is why the progress bar
+    // never moved (duration stayed 0 forever).
 
     return () => {
       if (hlsRef.current) {
@@ -146,14 +147,44 @@ const CustomPlayer = ({
     }
   }, [initialTime]);
 
-  // ⏱️ Keep the displayed current time in sync without re-rendering on every frame via ref reads in JSX
+  // ⏱️ Duration + current time — listen on multiple events so we don't
+  // depend on a single event firing reliably across browsers/sources.
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
-    const tick = () => setCurrentTimeDisplay(video.currentTime || 0);
+
+    const updateDuration = () => {
+      if (video.duration && !isNaN(video.duration)) setDuration(video.duration);
+    };
+    const tick = () => {
+      setCurrentTimeDisplay(video.currentTime || 0);
+      if (video.duration && !isNaN(video.duration) && !isDraggingProgressRef.current) {
+        setProgress((video.currentTime / video.duration) * 100);
+      }
+    };
+
+    video.addEventListener("loadedmetadata", updateDuration);
+    video.addEventListener("durationchange", updateDuration);
     video.addEventListener("timeupdate", tick);
-    return () => video.removeEventListener("timeupdate", tick);
-  }, []);
+
+    return () => {
+      video.removeEventListener("loadedmetadata", updateDuration);
+      video.removeEventListener("durationchange", updateDuration);
+      video.removeEventListener("timeupdate", tick);
+    };
+  }, [src, hlsUrl]);
+
+  // 📊 Separately track the 5-second watch-time reporting so it doesn't
+  // get tangled with the display-update logic above.
+  const handleTimeUpdateForTracking = () => {
+    const v = videoRef.current;
+    if (!v?.duration) return;
+    const currentPos = v.currentTime;
+    if (Math.abs(currentPos - lastTrackedTimeRef.current) >= 5) {
+      lastTrackedTimeRef.current = currentPos;
+      onWatchTime?.(currentPos, v.duration);
+    }
+  };
 
   const toggleFullscreen = () => {
     if (!document.fullscreenElement) {
@@ -165,26 +196,56 @@ const CustomPlayer = ({
     }
   };
 
-  const handleTimeUpdate = () => {
-    const v = videoRef.current;
-    if (!v?.duration) return;
+  // ─────────────────────────────────────────────
+  // 🎯 PROGRESS BAR — click AND drag
+  // ─────────────────────────────────────────────
+  const seekToClientX = useCallback((clientX) => {
+    if (!progressRef.current || !videoRef.current?.duration) return;
+    const rect = progressRef.current.getBoundingClientRect();
+    const percent = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+    const newTime = percent * videoRef.current.duration;
+    videoRef.current.currentTime = newTime;
+    setProgress(percent * 100);
+    onWatchTime?.(newTime, videoRef.current.duration);
+  }, [onWatchTime]);
 
-    const currentPos = v.currentTime;
-    setProgress((currentPos / v.duration) * 100);
-
-    // Track every 5 seconds
-    if (Math.abs(currentPos - lastTrackedTimeRef.current) >= 5) {
-      lastTrackedTimeRef.current = currentPos;
-      onWatchTime?.(currentPos, v.duration);
-    }
+  const handleProgressMouseDown = (e) => {
+    isDraggingProgressRef.current = true;
+    seekToClientX(e.clientX);
   };
 
-  const handleSeek = (e) => {
-    if (!progressRef.current || !duration) return;
-    const rect = progressRef.current.getBoundingClientRect();
+  useEffect(() => {
+    const handleMouseMove = (e) => {
+      if (isDraggingProgressRef.current) seekToClientX(e.clientX);
+      if (isDraggingVolumeRef.current && volumeRef.current) {
+        const rect = volumeRef.current.getBoundingClientRect();
+        const percent = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+        setVolume(percent);
+        setIsMuted(false);
+      }
+    };
+    const handleMouseUp = () => {
+      isDraggingProgressRef.current = false;
+      isDraggingVolumeRef.current = false;
+    };
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp);
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, [seekToClientX]);
+
+  // ─────────────────────────────────────────────
+  // 🔊 VOLUME — click AND drag
+  // ─────────────────────────────────────────────
+  const handleVolumeMouseDown = (e) => {
+    isDraggingVolumeRef.current = true;
+    if (!volumeRef.current) return;
+    const rect = volumeRef.current.getBoundingClientRect();
     const percent = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-    videoRef.current.currentTime = percent * duration;
-    onWatchTime?.(videoRef.current.currentTime, duration);
+    setVolume(percent);
+    setIsMuted(false);
   };
 
   // 🔄 RETRY LOGIC
@@ -221,7 +282,7 @@ const CustomPlayer = ({
     return `${m}:${s}`;
   };
 
-  // ⌨️ Keyboard shortcuts (space to play/pause, arrows to seek, m to mute)
+  // ⌨️ Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (!containerRef.current?.contains(document.activeElement) && document.activeElement !== document.body) return;
@@ -258,15 +319,14 @@ const CustomPlayer = ({
     >
       <video
         ref={videoRef}
-        src={src}
+        src={hlsUrl ? undefined : src}
         onClick={togglePlay}
-        onTimeUpdate={handleTimeUpdate}
+        onTimeUpdate={handleTimeUpdateForTracking}
         onWaiting={() => setBuffering(true)}
         onPlaying={() => { setBuffering(false); setPlaying(true); }}
         onSeeking={() => setBuffering(true)}
         onSeeked={() => setBuffering(false)}
         onPause={() => setPlaying(false)}
-        onLoadedMetadata={() => setDuration(videoRef.current.duration)}
         onEnded={onEnd}
         onError={handleError}
         className="w-full h-full object-contain cursor-pointer"
@@ -315,13 +375,15 @@ const CustomPlayer = ({
         animate={{ opacity: showControls || !playing ? 1 : 0, y: showControls || !playing ? 0 : 10 }}
         className="absolute bottom-0 w-full p-6 bg-gradient-to-t from-black/80 via-black/20 to-transparent z-20 pt-16"
       >
+        {/* PROGRESS BAR */}
         <div
           ref={progressRef}
-          onClick={handleSeek}
-          className="group/progress relative h-1 bg-white/20 rounded-full cursor-pointer mb-6 transition-all hover:h-1.5"
+          onMouseDown={handleProgressMouseDown}
+          className="group/progress relative h-1.5 bg-white/20 rounded-full cursor-pointer mb-6 transition-all hover:h-2"
         >
-          <div className="absolute left-0 top-0 h-full bg-brand-orange rounded-full" style={{ width: `${progress}%` }}>
-            <div className="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 bg-white rounded-full shadow-lg scale-0 group-hover/progress:scale-100 transition-transform" />
+          <div className="absolute left-0 top-0 h-full bg-orange-800 rounded-full pointer-events-none" style={{ width: `${progress}%` }}>
+            <div className="absolute top-1/2 -translate-y-1/2 w-3 h-3 bg-sky-500 rounded-full shadow-md pointer-events-none transition-opacity opacity-0 group-hover/volume:opacity-100"
+              style={{ left: `calc(${(isMuted ? 0 : volume) * 100}% - 6px)` }} />
           </div>
         </div>
 
@@ -333,36 +395,27 @@ const CustomPlayer = ({
             <div className="flex items-center gap-3">
               <button
                 onClick={() => setIsMuted(!isMuted)}
-                className="hover:text-brand-orange transition-colors"
+                className="hover:text-brand-orange transition-colors shrink-0"
               >
                 {isMuted || volume === 0 ? <VolumeX size={18} /> : <Volume2 size={18} />}
               </button>
 
-              <div className="group/volume relative w-24 h-6 flex items-center cursor-pointer">
-                <div
-                  className="w-full h-1 bg-white/20 rounded-full relative overflow-hidden"
-                  onClick={(e) => {
-                    const rect = e.currentTarget.getBoundingClientRect();
-                    const newVol = (e.clientX - rect.left) / rect.width;
-                    setVolume(Math.max(0, Math.min(1, newVol)));
-                    setIsMuted(false);
-                  }}
-                >
-                  <motion.div
-                    initial={false}
-                    animate={{ width: `${(isMuted ? 0 : volume) * 100}%` }}
-                    className="absolute left-0 top-0 h-full bg-brand-orange"
+              {/* VOLUME BAR — now click AND drag, with a visible thumb */}
+              <div
+                ref={volumeRef}
+                onMouseDown={handleVolumeMouseDown}
+                className="group/volume relative w-24 h-4 flex items-center cursor-pointer"
+              >
+                <div className="w-full h-1.5 bg-white/25 rounded-full relative overflow-visible">
+                  <div
+                    className="absolute left-0 top-0 h-full bg-blue-500 rounded-full pointer-events-none"
+                    style={{ width: `${(isMuted ? 0 : volume) * 100}%` }}
+                  />
+                  <div
+                    className="absolute top-1/2 -translate-y-1/2 w-3 h-3 bg-white rounded-full shadow-md pointer-events-none transition-opacity opacity-0 group-hover/volume:opacity-100"
+                    style={{ left: `calc(${(isMuted ? 0 : volume) * 100}% - 6px)` }}
                   />
                 </div>
-                <div
-                  className="absolute inset-0 z-10"
-                  onClick={(e) => {
-                    const rect = e.currentTarget.getBoundingClientRect();
-                    const newVol = (e.clientX - rect.left) / rect.width;
-                    setVolume(Math.max(0, Math.min(1, newVol)));
-                    setIsMuted(false);
-                  }}
-                />
               </div>
             </div>
             <span className="font-display font-bold text-[10px] tracking-widest opacity-80 uppercase">
@@ -408,7 +461,5 @@ const CustomPlayer = ({
     </div>
   );
 };
-
-
 
 export default CustomPlayer;

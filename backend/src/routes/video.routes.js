@@ -13,7 +13,13 @@ import {
 import { authMiddleware } from "../middleware/auth.middleware.js";
 import { optionalAuth } from "../middleware/optionalAuth.middleware.js";
 import { addView } from "../controllers/view.controller.js";
-import { updateWatchTime, getWatchTime } from "../controllers/watch.controller.js";
+import {
+    updateWatchTime,
+    getWatchTime,
+    getWatchHistory,
+    clearWatchHistory,
+    removeWatchHistoryEntry
+} from "../controllers/watch.controller.js";
 
 const router = Router()
 
@@ -32,6 +38,18 @@ router.get("/trending", optionalAuth, getTrendingVideos);
 // /api/video/search?q=...
 // GET
 router.get("/search", optionalAuth, searchVideos);
+
+// /api/video/history
+// GET
+router.get("/history", authMiddleware, getWatchHistory);
+
+// /api/video/history
+// DELETE
+router.delete("/history", authMiddleware, clearWatchHistory);
+
+// /api/video/history/:entryId
+// DELETE
+router.delete("/history/:entryId", authMiddleware, removeWatchHistoryEntry);
 
 // /api/video
 // GET

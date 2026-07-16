@@ -1,8 +1,6 @@
 import WatchHistory from "../models/watchHistory.model.js";
 import videoModel from "../models/video.model.js";
 
-
-
 // every 5 sec
 export const updateWatchTime = async (req, res) => {
   try {
@@ -15,7 +13,6 @@ export const updateWatchTime = async (req, res) => {
 
     const safeDuration = typeof duration === "number" && duration > 0 ? duration : 1;
 
-    // 📈 Retention Tracking (20 buckets of 5% each)
     const bucketIndex = Math.min(19, Math.max(0, Math.floor((time / safeDuration) * 20)));
 
     let record = await WatchHistory.findOne({ user: userId, video: videoId });
@@ -40,7 +37,6 @@ export const updateWatchTime = async (req, res) => {
       });
     }
 
-    // 🧠 SMART VIEW: If watched > 5s and never counted, increment video views
     if (time > 5 && !record.viewCounted) {
       await videoModel.findByIdAndUpdate(videoId, { $inc: { views: 1 } });
       record.viewCounted = true;
@@ -55,9 +51,6 @@ export const updateWatchTime = async (req, res) => {
   }
 };
 
-
-
-
 export const getWatchTime = async (req, res) => {
   try {
     const { videoId } = req.params;
@@ -71,6 +64,73 @@ export const getWatchTime = async (req, res) => {
 
   } catch (err) {
     console.error("Get watch time error:", err);
+    return res.status(500).json({ message: "Internal Server Error" });
+  }
+};
+
+// ✅ LIST WATCH HISTORY (for the History page)
+export const getWatchHistory = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const page = parseInt(req.query.page) || 1;
+    const limit = 20;
+    const skip = (page - 1) * limit;
+
+    const history = await WatchHistory
+      .find({ user: userId })
+      .sort({ lastUpdated: -1 })
+      .skip(skip)
+      .limit(limit)
+      .populate({
+        path: "video",
+        select: "title thumbnail duration views createdAt channel status",
+        populate: { path: "channel", select: "name handle avatar" }
+      });
+
+    // Filter out entries whose video was deleted (populate returns null)
+    const validEntries = history.filter((h) => h.video);
+
+    return res.json({
+      success: true,
+      history: validEntries.map((h) => ({
+        _id: h._id,
+        progress: h.progress,
+        lastUpdated: h.lastUpdated,
+        video: h.video
+      }))
+    });
+
+  } catch (err) {
+    console.error("Get watch history error:", err);
+    return res.status(500).json({ message: "Internal Server Error" });
+  }
+};
+
+// ✅ CLEAR WATCH HISTORY
+export const clearWatchHistory = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    await WatchHistory.deleteMany({ user: userId });
+    return res.json({ success: true, message: "History cleared" });
+  } catch (err) {
+    console.error("Clear watch history error:", err);
+    return res.status(500).json({ message: "Internal Server Error" });
+  }
+};
+
+// ✅ REMOVE ONE HISTORY ENTRY
+export const removeWatchHistoryEntry = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const { entryId } = req.params;
+
+    const entry = await WatchHistory.findOne({ _id: entryId, user: userId });
+    if (!entry) return res.status(404).json({ message: "Entry not found" });
+
+    await WatchHistory.deleteOne({ _id: entryId });
+    return res.json({ success: true });
+  } catch (err) {
+    console.error("Remove watch history entry error:", err);
     return res.status(500).json({ message: "Internal Server Error" });
   }
 };
