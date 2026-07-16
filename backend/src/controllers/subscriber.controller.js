@@ -16,9 +16,6 @@ export const toggleSubscribe = async (req, res) => {
       return res.status(404).json({ message: "Channel not found" });
     }
 
-    if (channel.owner.toString() === userId.toString()) {
-      return res.status(400).json({ message: "You can't subscribe to your own channel" });
-    }
 
     const existing = await subscriberModel.findOne({
       user: userId,
