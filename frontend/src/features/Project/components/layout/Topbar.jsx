@@ -3,7 +3,7 @@ import { Search, Menu, User, LogOut, Video, X } from "lucide-react";
 import { useEffect, useState, useRef } from "react";
 import { useSelector } from "react-redux";
 import { searchVideos } from "../../services/ytapi.service";
-import { useAuth } from "../../../auth/hook/useAuth";
+import { useAuth } from "../../../Auth/hook/useAuth";
 import { motion, AnimatePresence } from "framer-motion";
 
 const Topbar = ({ setSidebarOpen, collapsed, setCollapsed }) => {

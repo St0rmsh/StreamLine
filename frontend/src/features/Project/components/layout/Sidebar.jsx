@@ -1,7 +1,7 @@
 import { NavLink, useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { Home, LogOut, X, LayoutDashboard, Compass, PlayCircle, History, UploadCloud } from "lucide-react";
-import { useAuth } from "../../../auth/hook/useAuth.js";
+import { useAuth } from "../../../Auth/hooks/useAuth.js";
 import { motion, AnimatePresence } from "framer-motion";
 
 const Sidebar = ({ open, setOpen, collapsed }) => {
@@ -111,22 +111,22 @@ const Sidebar = ({ open, setOpen, collapsed }) => {
             ))}
           </nav>
 
-          <div className="mt-auto pt-4 border-t border-main">
+          <div className="mt-auto pt-4 border-t border-main ">
             {user ? (
               <button
                 onClick={onLogout}
-                className="w-full flex items-center gap-4 px-3.5 py-3 rounded-2xl text-brand-red hover:bg-brand-red/10 font-black text-[10px] uppercase tracking-widest transition-all group"
+                className="w-full  flex cursor-pointer items-center gap-4 px-3.5 py-3 rounded-2xl text-brand-red hover:bg-brand-red/10 font-black text-[10px] uppercase tracking-widest transition-all group"
               >
                 <LogOut className="w-5 h-5 shrink-0 transition-transform group-hover:-translate-x-1" />
-                {!collapsed && <span className="whitespace-nowrap">Sign Out</span>}
+                {!collapsed && <span className="whitespace-nowrap text-green-600">Sign Out</span>}
               </button>
             ) : (
               <button
                 onClick={() => { setOpen(false); navigate("/login"); }}
-                className="w-full flex items-center gap-4 px-3.5 py-3 rounded-2xl bg-brand-orange text-white font-black text-[10px] uppercase tracking-widest transition-all hover:bg-brand-orange/90"
+                className="w-full cursor-pointer flex items-center gap-4 px-3.5 py-3 rounded-2xl bg-brand-orange text-green-600 font-black text-[10px] uppercase tracking-widest transition-all hover:bg-brand-orange/90"
               >
-                <LogOut className="w-5 h-5 shrink-0 rotate-180" />
-                {!collapsed && <span className="whitespace-nowrap">Sign In</span>}
+                <LogOut className="w-5 cursor-pointer h-5 shrink-0 rotate-180" />
+                {!collapsed && <span className="whitespace-nowrap text-green-600">Sign In</span>}
               </button>
             )}
           </div>

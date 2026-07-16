@@ -1,11 +1,11 @@
 import { RouterProvider } from "react-router-dom";
 import { router } from "./app.routes.jsx";
 import { useEffect } from "react";
-import { useAuth } from "../features/auth/hook/useAuth";
+import { useAuth } from "../features/Auth/hook/useAuth";
 import { useSelector } from "react-redux";
 import { Loader } from "lucide-react";
 import { Toaster } from "react-hot-toast";
-import { ThemeProvider } from "../features/Yt_Clone/context/ThemeContext";
+import { ThemeProvider } from "../features/Project/context/ThemeContext";
 
 function App() {
   const { handleGetMe } = useAuth();
