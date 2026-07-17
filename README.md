@@ -13,6 +13,9 @@ A YouTube-style video platform where every upload is automatically fact-checked,
 [![LangChain](https://img.shields.io/badge/LangChain-Gemini-1C3C3C?logo=langchain&logoColor=white)](https://www.langchain.com/)
 [![License: ISC](https://img.shields.io/badge/License-ISC-blue.svg)](#-license)
 
+
+[![Live Demo](https://img.shields.io/badge/Live-Demo-success?logo=render)](https://streamline-chez.onrender.com/)
+
 [Overview](#-what-it-does) • [Architecture](#️-architecture) • [Tech Stack](#-tech-stack) • [Setup](#️-setup) • [Limitations](#-known-limitations) • [Roadmap](#️-roadmap)
 
 </div>
