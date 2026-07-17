@@ -4,7 +4,7 @@ let socket = null;
 
 export const connectSocket = () => {
   if (!socket) {
-    const url = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000";
+    const url = "http://localhost:3000";
     socket = io(url, {
       withCredentials: true,
       autoConnect: true,

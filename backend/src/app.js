@@ -4,9 +4,20 @@ import morgan from "morgan"
 import cors from "cors"
 import multer from "multer"
 import fs from "fs"
+import path from "path";
+import { fileURLToPath } from "url";
+
+
 const app = express()
 
-const CLIENT_URL = process.env.CLIENT_URL || "http://localhost:5173";
+const CLIENT_URL = "http://localhost:5173";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const publicPath = path.join(__dirname, "../public");
+
+app.use(express.static(publicPath));
 
 app.use(express.json())
 app.use(cookieParser())
@@ -67,6 +78,13 @@ setInterval(async () => {
 }, 60 * 60 * 1000);
 
 
+
+
+app.get("/{*splat}", (req, res) => {
+  res.sendFile(path.join(publicPath, "index.html"));
+});
+
+
 // 404 handler — must come after all routes
 app.use((req, res) => {
   res.status(404).json({ message: "Route not found" });
@@ -85,5 +103,8 @@ app.use((err, req, res, next) => {
   console.error(err);
   res.status(500).json({ message: "Server Error" });
 });
+
+
+
 
 export default app
