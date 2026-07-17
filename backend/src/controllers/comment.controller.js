@@ -1,5 +1,6 @@
 import commentModel from "../models/comment.model.js";
 import videoModel from "../models/video.model.js";
+import channelModel from "../models/channel.model.js";
 import { getIO } from "../socket/connect.socket.js";
 
 export const addComment = async (req, res) => {
@@ -67,19 +68,16 @@ export const reactToComment = async (req, res) => {
       return res.status(404).json({ message: "Comment not found" });
     }
 
-    // 🔥 Determine if this click is toggling off the existing reaction
     const alreadyReacted = comment.reactions[emoji]?.some(
       (id) => id.toString() === userId.toString()
     );
 
-    // Remove user from all reactions first
     ALLOWED.forEach((key) => {
       comment.reactions[key] = comment.reactions[key].filter(
         (id) => id.toString() !== userId.toString()
       );
     });
 
-    // Add back only if this wasn't a toggle-off
     if (!alreadyReacted) {
       comment.reactions[emoji].push(userId);
     }
@@ -160,7 +158,63 @@ export const getComments = async (req, res) => {
 };
 
 
-// ➤ Delete Comment (only owner)
+// ➤ Get Recent Comments across ALL of a creator's own videos (Dashboard feed)
+export const getCreatorRecentComments = async (req, res) => {
+  try {
+    const userId = req.user._id;
+
+    const channel = await channelModel.findOne({ owner: userId });
+    if (!channel) {
+      // No channel yet — nothing to show, not an error.
+      return res.status(200).json({ comments: [] });
+    }
+
+    const myVideos = await videoModel
+      .find({ channel: channel._id })
+      .select("_id title thumbnail");
+
+    if (myVideos.length === 0) {
+      return res.status(200).json({ comments: [] });
+    }
+
+    const videoIds = myVideos.map((v) => v._id);
+    const videoMap = myVideos.reduce((acc, v) => {
+      acc[v._id.toString()] = { title: v.title, thumbnail: v.thumbnail };
+      return acc;
+    }, {});
+
+    const limit = Math.min(parseInt(req.query.limit) || 10, 50);
+
+    // Only top-level comments in the feed (replies clutter a summary view) —
+    // creators can still open the video to see the full thread.
+    const comments = await commentModel
+      .find({ video: { $in: videoIds }, parent: null })
+      .populate("user", "username avatar")
+      .sort({ createdAt: -1 })
+      .limit(limit);
+
+    const formatted = comments.map((c) => ({
+      _id: c._id,
+      text: c.text,
+      createdAt: c.createdAt,
+      user: c.user,
+      video: {
+        _id: c.video,
+        title: videoMap[c.video.toString()]?.title || "Untitled",
+        thumbnail: videoMap[c.video.toString()]?.thumbnail || null
+      }
+    }));
+
+    return res.status(200).json({ comments: formatted });
+
+  } catch (err) {
+    console.error("Get creator recent comments error:", err);
+    return res.status(500).json({ message: "Server error" });
+  }
+};
+
+
+// ➤ Delete Comment (owner of the comment, OR the channel owner of the video it's on)
 export const deleteComment = async (req, res) => {
     try {
         const userId = req.user?._id;
@@ -172,11 +226,21 @@ export const deleteComment = async (req, res) => {
             return res.status(404).json({ message: "Comment not found" });
         }
 
-        if (comment.user.toString() !== userId.toString()) {
+        const isCommentAuthor = comment.user.toString() === userId.toString();
+
+        let isVideoOwner = false;
+        if (!isCommentAuthor) {
+            const video = await videoModel.findById(comment.video).select("channel");
+            if (video) {
+                const channel = await channelModel.findById(video.channel).select("owner");
+                isVideoOwner = channel && channel.owner.toString() === userId.toString();
+            }
+        }
+
+        if (!isCommentAuthor && !isVideoOwner) {
             return res.status(403).json({ message: "Not allowed" });
         }
 
-        // Delete this comment and any direct replies to it
         const replyIds = await commentModel.find({ parent: commentId }).distinct("_id");
         const totalDeleted = 1 + replyIds.length;
 

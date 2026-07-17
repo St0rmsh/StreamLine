@@ -3,7 +3,8 @@ import {
     addComment,
     getComments,
     deleteComment,
-    reactToComment
+    reactToComment,
+    getCreatorRecentComments
 } from "../controllers/comment.controller.js";
 import { authMiddleware } from "../middleware/auth.middleware.js";
 
@@ -16,6 +17,10 @@ router.post("/:videoId/comment", authMiddleware, addComment);
 // /api/comment/:commentId/react
 // POST
 router.post("/:commentId/react", authMiddleware, reactToComment);
+
+// /api/comment/creator/recent
+// GET — must be registered before the generic "/:videoId" GET route below
+router.get("/creator/recent", authMiddleware, getCreatorRecentComments);
 
 // /api/comment/:commentId
 // DELETE

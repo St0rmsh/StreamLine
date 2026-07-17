@@ -51,6 +51,18 @@ export const uploadFromPath = async (filePath, { folder = "/videos", filename } 
     form.append("fileName", finalFileName);
     form.append("folder", folder);
 
+    // -------------------------------------
+
+  const stats = fs.statSync(filePath);
+
+console.log(`📦 Upload file size: ${(stats.size / 1024 / 1024).toFixed(2)} MB`);
+
+if (stats.size > 100 * 1024 * 1024) {
+  throw new Error(
+    `Video size is ${(stats.size / 1024 / 1024).toFixed(2)} MB. ImageKit limit is 100 MB.`
+  );
+}
+// ---------------------------------
     const authString = Buffer.from(`${config.IMAGEKIT_PRIVATE_KEY}:`).toString("base64");
 
     console.log(`📡 DIRECT_UPLOAD: Sending ${finalFileName} to ImageKit (no timeout limit)...`);
@@ -79,6 +91,9 @@ export const uploadFromPath = async (filePath, { folder = "/videos", filename } 
 
   } catch (error) {
     console.error("Large upload failed:", error.message || error);
+    console.error("STATUS:", error.response?.status);
+    console.error("DATA:", error.response?.data);
+    console.error("MESSAGE:", error.message);
     throw error;
   }
 };

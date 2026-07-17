@@ -4,7 +4,7 @@ import { searchInternet } from "./internet.service.js";
 
 // 🧠 MODEL
 const model = new ChatGoogleGenerativeAI({
-    model: "gemini-2.5-flash",
+    model: "gemini-2.5-flash-lite",
     apiKey: config.GOOGLE_API_KEY
 });
 

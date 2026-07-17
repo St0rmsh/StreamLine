@@ -66,6 +66,22 @@ const CustomPlayer = ({
 
   const src = sources?.[quality] || sources?.["720p"];
 
+  // 🎬 Shared autoplay attempt — browsers block autoplay-with-sound, so if
+  // the unmuted attempt is rejected (NotAllowedError), retry muted. This is
+  // the ONLY reliably-allowed autoplay path across Chrome/Safari/Firefox.
+  const attemptAutoplay = useCallback((video) => {
+    if (!video) return;
+    video.play().catch(() => {
+      video.muted = true;
+      setIsMuted(true);
+      video.play().catch(() => {
+        // Even muted autoplay was blocked (rare, e.g. very strict mobile
+        // settings) — leave paused, user will hit the play button.
+        setPlaying(false);
+      });
+    });
+  }, []);
+
   // Handle src change and autoplay with HLS support
   useEffect(() => {
     retryCountRef.current = 0;
@@ -91,9 +107,7 @@ const CustomPlayer = ({
       hls.loadSource(hlsUrl);
       hls.attachMedia(video);
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
-        if (autoPlay) {
-          video.play().catch(() => setIsMuted(true));
-        }
+        if (autoPlay) attemptAutoplay(video);
       });
       hls.on(Hls.Events.ERROR, (event, data) => {
         if (data.fatal) {
@@ -110,33 +124,44 @@ const CustomPlayer = ({
               hlsRef.current = null;
               video.src = src;
               video.load();
-              if (autoPlay) video.play().catch(() => setIsMuted(true));
+              if (autoPlay) attemptAutoplay(video);
               break;
           }
         }
       });
 
     } else if (hlsUrl && video.canPlayType("application/vnd.apple.mpegurl")) {
-      // Native HLS (Safari) — src is set imperatively here since there's no
-      // hlsUrl attribute path in the plain <video> JSX below.
+      // Native HLS (Safari)
       video.src = hlsUrl;
       video.load();
-      if (autoPlay) video.play().catch(() => setIsMuted(true));
+      if (autoPlay) attemptAutoplay(video);
 
+    } else if (src) {
+      // 🟢 PLAIN MP4/WEBM CASE (the common path — <video src={src}> in the
+      // JSX below handles the actual loading declaratively). This branch
+      // was previously missing entirely, which meant autoplay never fired
+      // for non-HLS videos and every video required a manual click.
+      // We wait for the browser to report it can actually play before
+      // calling .play() — calling it too early on a fresh <video> element
+      // can silently no-op in some browsers.
+      const tryPlay = () => {
+        if (autoPlay) attemptAutoplay(video);
+      };
+      if (video.readyState >= 3) {
+        // Already has enough data (e.g. cached)
+        tryPlay();
+      } else {
+        video.addEventListener("canplay", tryPlay, { once: true });
+      }
+      return () => video.removeEventListener("canplay", tryPlay);
     }
-    // 🚫 No `else` branch here doing `video.src = src; video.load()` —
-    // the <video src={src}> attribute in the JSX below already handles the
-    // plain-MP4 case declaratively. Setting it a second time imperatively
-    // right after mount was interrupting the initial load and preventing
-    // `loadedmetadata` from firing reliably, which is why the progress bar
-    // never moved (duration stayed 0 forever).
 
     return () => {
       if (hlsRef.current) {
         hlsRef.current.destroy();
       }
     };
-  }, [src, hlsUrl, autoPlay]);
+  }, [src, hlsUrl, autoPlay, attemptAutoplay]);
 
 
   // ⌚ RESUME LOGIC
@@ -147,8 +172,7 @@ const CustomPlayer = ({
     }
   }, [initialTime]);
 
-  // ⏱️ Duration + current time — listen on multiple events so we don't
-  // depend on a single event firing reliably across browsers/sources.
+  // ⏱️ Duration + current time
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
@@ -174,8 +198,7 @@ const CustomPlayer = ({
     };
   }, [src, hlsUrl]);
 
-  // 📊 Separately track the 5-second watch-time reporting so it doesn't
-  // get tangled with the display-update logic above.
+  // 📊 5-second watch-time reporting
   const handleTimeUpdateForTracking = () => {
     const v = videoRef.current;
     if (!v?.duration) return;
@@ -196,9 +219,7 @@ const CustomPlayer = ({
     }
   };
 
-  // ─────────────────────────────────────────────
-  // 🎯 PROGRESS BAR — click AND drag
-  // ─────────────────────────────────────────────
+  // 🎯 PROGRESS BAR
   const seekToClientX = useCallback((clientX) => {
     if (!progressRef.current || !videoRef.current?.duration) return;
     const rect = progressRef.current.getBoundingClientRect();
@@ -236,9 +257,7 @@ const CustomPlayer = ({
     };
   }, [seekToClientX]);
 
-  // ─────────────────────────────────────────────
-  // 🔊 VOLUME — click AND drag
-  // ─────────────────────────────────────────────
+  // 🔊 VOLUME
   const handleVolumeMouseDown = (e) => {
     isDraggingVolumeRef.current = true;
     if (!volumeRef.current) return;
@@ -331,6 +350,7 @@ const CustomPlayer = ({
         onError={handleError}
         className="w-full h-full object-contain cursor-pointer"
         playsInline
+        autoPlay={autoPlay}
         muted={isMuted}
       />
 
@@ -342,6 +362,22 @@ const CustomPlayer = ({
           >
             <div className="w-12 h-12 border-4 border-white/20 border-t-brand-orange rounded-full animate-spin"></div>
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* MUTED-AUTOPLAY NOTICE — lets the viewer know why there's no sound
+          and gives a one-click way to unmute, instead of silently failing. */}
+      <AnimatePresence>
+        {isMuted && playing && (
+          <motion.button
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            onClick={() => setIsMuted(false)}
+            className="absolute top-4 left-4 z-20 bg-black/80 backdrop-blur-md border border-white/10 px-3 py-1.5 rounded-full flex items-center gap-2 text-white text-[9px] font-black uppercase tracking-widest hover:bg-brand-orange transition-colors"
+          >
+            <VolumeX size={12} /> Tap to Unmute
+          </motion.button>
         )}
       </AnimatePresence>
 
@@ -375,15 +411,13 @@ const CustomPlayer = ({
         animate={{ opacity: showControls || !playing ? 1 : 0, y: showControls || !playing ? 0 : 10 }}
         className="absolute bottom-0 w-full p-6 bg-gradient-to-t from-black/80 via-black/20 to-transparent z-20 pt-16"
       >
-        {/* PROGRESS BAR */}
         <div
           ref={progressRef}
           onMouseDown={handleProgressMouseDown}
           className="group/progress relative h-1.5 bg-white/20 rounded-full cursor-pointer mb-6 transition-all hover:h-2"
         >
-          <div className="absolute left-0 top-0 h-full bg-orange-800 rounded-full pointer-events-none" style={{ width: `${progress}%` }}>
-            <div className="absolute top-1/2 -translate-y-1/2 w-3 h-3 bg-sky-500 rounded-full shadow-md pointer-events-none transition-opacity opacity-0 group-hover/volume:opacity-100"
-              style={{ left: `calc(${(isMuted ? 0 : volume) * 100}% - 6px)` }} />
+          <div className="absolute left-0 top-0 h-full bg-brand-orange rounded-full pointer-events-none" style={{ width: `${progress}%` }}>
+            <div className="absolute top-1/2 -translate-y-1/2 -right-1.5 w-3 h-3 bg-white rounded-full shadow-md pointer-events-none opacity-0 group-hover/progress:opacity-100 transition-opacity" />
           </div>
         </div>
 
@@ -400,7 +434,6 @@ const CustomPlayer = ({
                 {isMuted || volume === 0 ? <VolumeX size={18} /> : <Volume2 size={18} />}
               </button>
 
-              {/* VOLUME BAR — now click AND drag, with a visible thumb */}
               <div
                 ref={volumeRef}
                 onMouseDown={handleVolumeMouseDown}
@@ -408,7 +441,7 @@ const CustomPlayer = ({
               >
                 <div className="w-full h-1.5 bg-white/25 rounded-full relative overflow-visible">
                   <div
-                    className="absolute left-0 top-0 h-full bg-blue-500 rounded-full pointer-events-none"
+                    className="absolute left-0 top-0 h-full bg-brand-orange rounded-full pointer-events-none"
                     style={{ width: `${(isMuted ? 0 : volume) * 100}%` }}
                   />
                   <div
@@ -425,7 +458,7 @@ const CustomPlayer = ({
 
           <div className="flex items-center gap-6">
             <div className="relative">
-              <button onClick={() => setShowSettings(!showSettings)} className={`transition-colors ${showSettings ? 'text-brand-orange' : 'hover:text-brand-tan'}`}>
+              <button onClick={() => setShowSettings(!showSettings)} className={`transition-colors ${showSettings ? 'text-brand-orange' : 'hover:text-brand-orange'}`}>
                 <Settings size={18} />
               </button>
               <AnimatePresence>

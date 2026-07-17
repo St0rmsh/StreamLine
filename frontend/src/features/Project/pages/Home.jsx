@@ -44,7 +44,7 @@ const Home = () => {
           </p>
         </div>
       ) : videos.length > 0 ? (
-        <div className="grid gap-x-6 gap-y-12 sm:gap-x-8 sm:gap-y-16 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-x-6 gap-y-12 sm:gap-x-8 sm:gap-y-16 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 [content-visibility:auto]">
           {videos.map((v) => (
             <VideoCard key={v._id} video={v} />
           ))}

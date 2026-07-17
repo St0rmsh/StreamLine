@@ -134,6 +134,8 @@ export const videoUpload = async (req, res) => {
     const fileName = `${Date.now()}-${file.originalname.replace(/\s+/g, "_")}`;
     tempVideoPath = await saveTempFile(file.buffer, fileName);
 
+    console.log(`📥 [UPLOAD] Video size: ${req.files.video[0].size} bytes`);
+
     const video = await videoModel.create({
       title: title.trim(),
       description: description || "",

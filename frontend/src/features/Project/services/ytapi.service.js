@@ -5,15 +5,10 @@ const api = axios.create({
     withCredentials: true
 });
 
-// 🔒 Global 401 handling — if the session expires mid-app-use, don't let
-// every failed call fail silently; redirect to login once, cleanly.
 api.interceptors.response.use(
     (res) => res,
     (err) => {
         if (err.response?.status === 401 && !window.location.pathname.includes("/login")) {
-            // Let individual callers still catch this if they need custom handling
-            // (e.g. optional-auth calls on public pages) — only redirect for
-            // clearly-authenticated-only endpoints.
         }
         return Promise.reject(err);
     }
@@ -117,6 +112,11 @@ export const deleteComment = (commentId) => {
 
 export const reactToComment = (commentId, emoji) =>
     api.post(`/api/comment/${commentId}/react`, { emoji });
+
+// Creator dashboard: recent top-level comments across ALL of the creator's own videos
+export const getCreatorRecentComments = (limit = 6) => {
+    return api.get(`/api/comment/creator/recent?limit=${limit}`);
+};
 
 
 // =======================

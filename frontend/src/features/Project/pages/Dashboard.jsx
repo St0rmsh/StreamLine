@@ -1,12 +1,24 @@
 import { useEffect, useState, useRef } from "react";
-import { UploadCloud, X, Image as ImageIcon, Sparkles, Users, Eye, Settings, ShieldCheck, Edit, Trash2, Search, Clock, Play, Activity, Zap, Cpu, Radio, TrendingUp, DollarSign, Bell } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { UploadCloud, X, Image as ImageIcon, Sparkles, Users, Eye, Settings, ShieldCheck, Edit, Trash2, Search, Clock, Play, Activity, Zap, Cpu, Radio, Bell, MessageSquare, ChevronRight } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { XAxis, YAxis, Tooltip, ResponsiveContainer, AreaChart, Area, CartesianGrid } from "recharts";
 import { toast } from "react-hot-toast";
-import { getMyVideos, getMyChannel, updateChannel, uploadVideo, createChannel, getStudioStats, deleteVideo, updateVideo } from "../services/ytapi.service";
+import { getMyVideos, getMyChannel, updateChannel, uploadVideo, createChannel, getStudioStats, deleteVideo, updateVideo, getCreatorRecentComments, deleteComment } from "../services/ytapi.service";
 import TrustMeter from "../components/UI/TrustMeter";
 
-// --- ELAPSED TIMER ---
+// --- TIME HELPERS ---
+const formatTimeAgo = (date) => {
+    if (!date) return "just now";
+    const seconds = Math.floor((new Date() - new Date(date)) / 1000);
+    const intervals = { year: 31536000, month: 2592000, day: 86400, hour: 3600, minute: 60 };
+    for (let key in intervals) {
+        const value = Math.floor(seconds / intervals[key]);
+        if (value >= 1) return `${value}${key.charAt(0)} ago`;
+    }
+    return "just now";
+};
+
 const ElapsedTimer = ({ createdAt }) => {
     const [elapsed, setElapsed] = useState("");
 
@@ -67,7 +79,6 @@ const ForensicButton = ({ children, variant = "primary", className = "", ...prop
     );
 };
 
-// --- METRIC CARD (top row, matches reference) ---
 const MetricCard = ({ label, value, delta, icon: Icon, highlight = false }) => (
     <div className={`p-6 sm:p-8 space-y-4 border ${highlight ? "bg-gradient-to-br from-brand-orange to-brand-red/80 border-transparent" : "bg-white/[0.02] border-border-main"}`}>
         <div className="flex justify-between items-start">
@@ -80,11 +91,15 @@ const MetricCard = ({ label, value, delta, icon: Icon, highlight = false }) => (
 );
 
 const Dashboard = () => {
+    const navigate = useNavigate();
+
     const [videos, setVideos] = useState([]);
     const [channel, setChannel] = useState(null);
     const [stats, setStats] = useState(null);
+    const [recentComments, setRecentComments] = useState([]);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
+    const [deletingCommentId, setDeletingCommentId] = useState(null);
 
     const [showUpload, setShowUpload] = useState(false);
     const [showEdit, setShowEdit] = useState(false);
@@ -139,15 +154,17 @@ const Dashboard = () => {
     const loadAllData = async () => {
         setLoading(true);
         try {
-            const [vRes, cRes, sRes] = await Promise.all([
+            const [vRes, cRes, sRes, cmRes] = await Promise.all([
                 getMyVideos(),
                 getMyChannel().catch(() => ({ data: { channel: null } })),
-                getStudioStats().catch(() => ({ data: { stats: null } }))
+                getStudioStats().catch(() => ({ data: { stats: null } })),
+                getCreatorRecentComments(6).catch(() => ({ data: { comments: [] } }))
             ]);
 
             setVideos(vRes.data.videos || []);
             setChannel(cRes.data.channel || null);
             setStats(sRes.data.stats || null);
+            setRecentComments(cmRes.data.comments || []);
 
             if (cRes.data.channel) {
                 setChannelForm({
@@ -170,7 +187,6 @@ const Dashboard = () => {
         value: val
     })) || [];
 
-    // recent activity feed derived from real video data (no fabricated numbers)
     const latestEvents = [...videos]
         .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
         .slice(0, 3)
@@ -269,6 +285,19 @@ const Dashboard = () => {
             toast.error(err?.response?.data?.message || "Update failed", { id: tid });
         } finally {
             setSaving(false);
+        }
+    };
+
+    const handleDeleteComment = async (commentId) => {
+        setDeletingCommentId(commentId);
+        try {
+            await deleteComment(commentId);
+            setRecentComments((prev) => prev.filter((c) => c._id !== commentId));
+            toast.success("Comment removed");
+        } catch (err) {
+            toast.error(err?.response?.data?.message || "Failed to remove comment");
+        } finally {
+            setDeletingCommentId(null);
         }
     };
 
@@ -386,7 +415,7 @@ const Dashboard = () => {
         <div className="min-h-screen bg-bg text-text-main font-sans selection:bg-brand-orange selection:text-white">
             <div className="max-w-[1400px] mx-auto px-4 sm:px-8 py-10 sm:py-16 space-y-12">
 
-                {/* ═══════════ HEADER: CREATOR COMMAND ═══════════ */}
+                {/* ═══════════ HEADER ═══════════ */}
                 <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-8 border-b border-border-main pb-10">
                     <div className="space-y-3">
                         <p className="text-[9px] font-bold uppercase tracking-[0.4em] text-brand-orange">Premium Creator</p>
@@ -453,7 +482,6 @@ const Dashboard = () => {
                 {/* ═══════════ RETENTION + LIVE PULSE ═══════════ */}
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-                    {/* Retention chart — 2/3 width */}
                     <div className="lg:col-span-2 space-y-6">
                         <div className="flex justify-between items-center px-1">
                             <h3 className="text-xs font-bold uppercase tracking-[0.3em] text-text-main flex items-center gap-3">
@@ -509,7 +537,6 @@ const Dashboard = () => {
                         </div>
                     </div>
 
-                    {/* Live Pulse — 1/3 width, matches reference panel */}
                     <div className="space-y-6">
                         <div className="flex justify-between items-center px-1">
                             <h3 className="text-xs font-bold uppercase tracking-[0.3em] text-text-main flex items-center gap-3">
@@ -594,6 +621,77 @@ const Dashboard = () => {
                         </div>
                     </div>
                 )}
+
+                {/* ═══════════ RECENT COMMENTS (across all of your videos) ═══════════ */}
+                <div className="space-y-6">
+                    <div className="flex justify-between items-center px-1">
+                        <h3 className="text-xs font-bold uppercase tracking-[0.3em] text-text-main flex items-center gap-3">
+                            <MessageSquare size={14} className="text-brand-orange" /> Recent Comments
+                        </h3>
+                        <span className="text-[9px] font-bold text-text-muted uppercase tracking-widest">
+                            {recentComments.length > 0 ? `${recentComments.length} latest` : ""}
+                        </span>
+                    </div>
+
+                    <div className="bg-white/[0.02] border border-border-main divide-y divide-border-main">
+                        {recentComments.length > 0 ? (
+                            recentComments.map((c) => (
+                                <div key={c._id} className="p-5 sm:p-6 flex gap-4 group hover:bg-white/[0.015] transition-colors">
+                                    <div className="w-9 h-9 rounded-full bg-surface-low border border-border-main overflow-hidden shrink-0 flex items-center justify-center">
+                                        {c.user?.avatar ? (
+                                            <img src={c.user.avatar} className="w-full h-full object-cover" />
+                                        ) : (
+                                            <span className="text-[10px] font-black text-text-muted">
+                                                {c.user?.username?.charAt(0)?.toUpperCase() || "U"}
+                                            </span>
+                                        )}
+                                    </div>
+
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-center gap-2 flex-wrap">
+                                            <span className="text-xs font-bold text-text-main">{c.user?.username || "User"}</span>
+                                            <span className="text-[10px] text-text-muted">{formatTimeAgo(c.createdAt)}</span>
+                                            <span className="text-[10px] text-text-muted">·</span>
+                                            <button
+                                                onClick={() => navigate(`/video/${c.video?._id}`)}
+                                                className="text-[10px] text-brand-orange hover:underline truncate max-w-[220px]"
+                                            >
+                                                on "{c.video?.title}"
+                                            </button>
+                                        </div>
+                                        <p className="mt-1.5 text-sm text-text-muted leading-relaxed break-words">
+                                            {c.text}
+                                        </p>
+                                    </div>
+
+                                    <div className="flex items-start gap-2 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                                        <button
+                                            onClick={() => navigate(`/video/${c.video?._id}`)}
+                                            className="p-2 text-text-muted hover:text-brand-orange transition-colors"
+                                            title="View on video"
+                                        >
+                                            <ChevronRight size={14} />
+                                        </button>
+                                        <button
+                                            onClick={() => handleDeleteComment(c._id)}
+                                            disabled={deletingCommentId === c._id}
+                                            className="p-2 text-text-muted hover:text-brand-red transition-colors disabled:opacity-40"
+                                            title="Remove comment"
+                                        >
+                                            <Trash2 size={14} />
+                                        </button>
+                                    </div>
+                                </div>
+                            ))
+                        ) : (
+                            <div className="py-16 text-center">
+                                <MessageSquare size={28} className="mx-auto text-white/10 mb-3" />
+                                <p className="text-[10px] font-bold uppercase tracking-widest text-text-muted">No comments yet</p>
+                                <p className="text-[9px] text-text-muted/60 mt-1 uppercase tracking-widest">Comments on your videos will show up here</p>
+                            </div>
+                        )}
+                    </div>
+                </div>
 
                 {/* ═══════════ TRUST METER (compact, standalone) ═══════════ */}
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
