@@ -4,7 +4,7 @@ let socket = null;
 
 export const connectSocket = () => {
   if (!socket) {
-    const url = "http://localhost:3000";
+    const url = "https://streamline-chez.onrender.com" || "http://localhost:3000";
     socket = io(url, {
       withCredentials: true,
       autoConnect: true,
