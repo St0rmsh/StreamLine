@@ -48,7 +48,19 @@ async function processVideoAsync({ videoId, tempVideoPath, title, description, f
       );
     });
 
-    // 3. Upload video
+    // 3. Deepfake analysis + transcription — BOTH run on the LOCAL
+    //    converted file, in parallel, BEFORE upload/delete. This avoids
+    //    re-downloading from ImageKit for either step, which was burning
+    //    ImageKit's video transformation quota on every upload.
+    console.log("🕵️ [PROCESS] Running deepfake analysis + transcription on local file...");
+    const [deepfakeScore, transcript] = await Promise.all([
+      analyzeVideoForDeepFake(convertedPath)
+        .catch(e => { console.warn("⚠️ Deepfake:", e.message); return 0; }),
+      transcribeVideo(convertedPath)
+        .catch(e => { console.warn("⚠️ Transcription:", e.message); return ""; })
+    ]);
+
+    // 4. Upload video (now safe to delete local file after this)
     console.log("📡 [PROCESS] Uploading video to ImageKit...");
     const uploadedVideo = await uploadFromPath(convertedPath, {
       filename: fileName.replace(/\.[^/.]+$/, ".mp4"),
@@ -58,7 +70,7 @@ async function processVideoAsync({ videoId, tempVideoPath, title, description, f
     convertedPath = null;
     console.log(`✅ [PROCESS] Video uploaded → ${uploadedVideo.url}`);
 
-    // 4. Thumbnail
+    // 5. Thumbnail
     let uploadedThumbnail;
     if (thumbFileBuffer) {
       uploadedThumbnail = await uploadFile({
@@ -70,20 +82,13 @@ async function processVideoAsync({ videoId, tempVideoPath, title, description, f
       uploadedThumbnail = { url: "https://images.unsplash.com/photo-1626814026160-2237a95fc5a0?q=80&w=2070&auto=format&fit=crop" };
     }
 
-    // 5. AI pipeline
+    // 6. AI verification pipeline (text-based, no ImageKit dependency)
     console.log("🤖 [PROCESS] Running AI pipeline...");
-    const cleanUrl = uploadedVideo.url.split("?")[0];
-
-    const [transcript, deepfakeScore] = await Promise.all([
-      transcribeVideo(cleanUrl).catch(e => { console.warn("⚠️ Transcription:", e.message); return ""; }),
-      analyzeVideoForDeepFake(cleanUrl).catch(e => { console.warn("⚠️ Deepfake:", e.message); return 0; })
-    ]);
-
     const ai = await SearchAndAskAI({ title, description, transcript, deepfakeScore })
       .catch(e => { console.warn("⚠️ AI:", e.message); return { data: {} }; });
     const aiData = ai?.data || {};
 
-    // 6. Mark ready
+    // 7. Mark ready
     await videoModel.findByIdAndUpdate(videoId, {
       videoUrl: uploadedVideo.url,
       thumbnail: uploadedThumbnail?.url,
@@ -372,9 +377,6 @@ export const getTrendingVideos = async (req, res) => {
     return res.status(500).json({ message: "Internal Server Error" });
   }
 };
-
-
-
 
 /**
  * 🛠 UPDATE VIDEO (Studio metadata edit)

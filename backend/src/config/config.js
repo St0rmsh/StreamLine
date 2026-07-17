@@ -11,7 +11,6 @@ const requiredEnvVars = [
   "REDIS_PORT",
   "IMAGEKIT_PRIVATE_KEY",
   "IMAGEKIT_PUBLIC_KEY",
-  "IMAGEKIT_URL_ENDPOINT",
   "JWT_SECRET",
   "TAVILY_API_KEY",
   "MISTRAL_API_KEY",
@@ -22,6 +21,7 @@ const requiredEnvVars = [
   "CLOUDINARY_CLOUD_NAME",
   "CLOUDINARY_API_KEY",
   "CLOUDINARY_API_SECRET",
+  "GOOGLE_API_KEY",
 ];
 
 const missingVars = requiredEnvVars.filter(
@@ -49,7 +49,6 @@ const config = {
     ASSEMBLY_API_KEY:process.env.ASSEMBLY_API_KEY,
     GOOGLE_USER:process.env.GOOGLE_USER,
     GOOGLE_PASS:process.env.GOOGLE_PASS,
-    IMAGEKIT_URL_ENDPOINT:process.env.IMAGEKIT_URL_ENDPOINT,
     GOOGLE_API_KEY:process.env.GOOGLE_API_KEY,
     ALLOWED_ORIGINS: process.env.ALLOWED_ORIGINS?.split(",") || ["http://localhost:5174"],
 }

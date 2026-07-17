@@ -6,14 +6,27 @@ import {
   loadDeepFakeModel
 } from "./deepfake.service.js";
 
-export async function analyzeVideoForDeepFake(videoPath) {
+/**
+ * Runs deepfake analysis on a LOCAL video file path.
+ * IMPORTANT: This must be called BEFORE the local file is deleted,
+ * i.e. right after ffmpeg conversion, not after upload to ImageKit.
+ * Passing a remote URL here was previously causing a redundant
+ * re-download from ImageKit for every upload, burning transformation
+ * quota and coupling this step to ImageKit's availability.
+ */
+export async function analyzeVideoForDeepFake(localVideoPath) {
+  if (!localVideoPath || !fs.existsSync(localVideoPath)) {
+    console.warn("⚠️ [DEEPFAKE] Local file missing, skipping analysis:", localVideoPath);
+    return 0;
+  }
+
   await loadDeepFakeModel();
 
   const frameDir = `frames-${Date.now()}`;
   let frames = [];
 
   try {
-    frames = await extractFrames(videoPath, frameDir);
+    frames = await extractFrames(localVideoPath, frameDir);
 
     let total = 0;
     let count = 0;
